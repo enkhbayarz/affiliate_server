@@ -80,7 +80,7 @@ router.post('/', verifyToken, async (req, res) => {
       affiliates.map((affiliate) => affiliate.link).join('\n')
     );
 
-    return sendSuccess(res, 'success', 200, { affiliates });
+    return sendSuccess(res, 'success', 200, 'true');
   } catch (error) {
     logger.error(`/POST /affiliate ERROR: ${error.message}`);
     return sendError(res, error.message, 500);
