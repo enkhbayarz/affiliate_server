@@ -119,6 +119,7 @@ router.post(
 
       return sendSuccess(res, 'success', 200, {
         qpay: response.data,
+        transaction: transaction._id,
       });
     } catch (error) {
       logger.error(`/POST /create-invoice/affiliate ERROR: ${error.message}`);
@@ -220,6 +221,7 @@ router.post(
 
       return sendSuccess(res, 'success', 200, {
         qpay: response.data,
+        transaction: transaction._id,
       });
     } catch (error) {
       logger.error(`/POST /create-invoice ERROR: ${error.message}`);
@@ -326,6 +328,28 @@ router.get('/call-back/affiliate/:id', fetchQpayToken, async (req, res) => {
     }
   } catch (error) {
     logger.error(`/GET /call-back/affiliate/:id ERROR: ${error.message}`);
+    return sendError(res, error.message, 500);
+  }
+});
+
+router.get('/qpay/check/transaction/:id', checkBasicAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    logger.info(`/POST /qpay/check/transaction/:id START: ${id}`);
+
+    const foundTransaction = await Transaction.findById(id);
+
+    if (!foundTransaction) {
+      return sendError(res, 'transaction not found!', 404);
+    }
+
+    if (foundTransaction.status === 'PAID') {
+      return sendSuccess(res, 'success', 200, { isPaid: true });
+    } else {
+      return sendSuccess(res, 'success', 200, { isPaid: false });
+    }
+  } catch (error) {
+    logger.error(`/GET /qpay/check/transaction/:id ERROR: ${error.message}`);
     return sendError(res, error.message, 500);
   }
 });
