@@ -205,6 +205,8 @@ router.get('/store/uid/:uid', checkBasicAuth, async (req, res) => {
     const product = await Product.findOne({ uid: uid })
       .populate('additionalInformation')
       .populate('option')
+      .populate('coverImage')
+      .populate('thumbnail')
       .exec();
 
     return sendSuccess(res, 'success', 200, { product });
