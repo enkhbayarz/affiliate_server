@@ -118,7 +118,6 @@ router.post(
       await transaction.save();
 
       return sendSuccess(res, 'success', 200, {
-        transaction: transaction,
         qpay: response.data,
       });
     } catch (error) {
@@ -220,7 +219,6 @@ router.post(
       await transaction.save();
 
       return sendSuccess(res, 'success', 200, {
-        transaction: transaction,
         qpay: response.data,
       });
     } catch (error) {
