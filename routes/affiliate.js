@@ -51,6 +51,20 @@ router.post('/', verifyToken, async (req, res) => {
     for (const item of list) {
       const { commission, productId } = item;
 
+      const foundAffiliates = await Affiliate.find({
+        merchant: merchant,
+        affiliateCustomer: affiliateCustomer,
+        product: productId,
+      });
+
+      if (foundAffiliates) {
+        return sendError(
+          res,
+          `Already created this affiliate on customer with product`,
+          400
+        );
+      }
+
       const foundProduct = await Product.findById(productId);
 
       if (!foundProduct) {

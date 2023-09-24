@@ -182,6 +182,8 @@ router.get('/store/:id', checkBasicAuth, async (req, res) => {
     const product = await Product.find({ merchant: foundMerchant })
       .populate('additionalInformation')
       .populate('option')
+      .populate('coverImage')
+      .populate('thumbnail')
       .exec();
 
     return sendSuccess(res, 'success', 200, {

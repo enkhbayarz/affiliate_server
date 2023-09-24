@@ -27,7 +27,8 @@ async function sendMail({ email, subject, text, html }) {
   try {
     const emailList = process.env.EMAIL_LIST_CHECK;
 
-    if (emailList.includes(foundCustomer.email)) {
+    if (emailList.includes(email)) {
+      logger.info(`send mail START: ${JSON.stringify(message)}`);
       await transporter.sendMail(message);
     }
     return 'success';
