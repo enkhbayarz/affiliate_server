@@ -92,7 +92,7 @@ router.post(
 
             await customer.save();
 
-            return generateTokens(res, email, foundCustomer._id);
+            return generateTokens(res, email, customer._id);
           }
         } else {
           return sendError(res, 'otp not match', 400);
