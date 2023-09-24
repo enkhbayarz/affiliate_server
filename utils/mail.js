@@ -25,7 +25,11 @@ async function sendMail({ email, subject, text, html }) {
   };
 
   try {
-    await transporter.sendMail(message);
+    const emailList = process.env.EMAIL_LIST_CHECK;
+
+    if (emailList.includes(foundCustomer.email)) {
+      await transporter.sendMail(message);
+    }
     return 'success';
   } catch (e) {
     logger.error(`send mail ERROR: ${e.message}`);

@@ -116,6 +116,24 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
+router.get('/add-check', verifyToken, async (req, res) => {
+  try {
+    const foundCustomer = req.customer;
+    logger.info(`/GET /product START: ${JSON.stringify(foundCustomer)}`);
+
+    const emailList = process.env.EMAIL_LIST_CHECK;
+
+    if (emailList.includes(foundCustomer.email)) {
+      return sendSuccess(res, 'success', 200, 'true');
+    } else {
+      return sendError(res, 'can not add product', 400);
+    }
+  } catch (error) {
+    logger.error(`/GET /product ERROR: ${error.message}`);
+    return sendError(res, error.message, 500);
+  }
+});
+
 //Get Product by Merchant
 router.get('/', verifyToken, async (req, res) => {
   try {
