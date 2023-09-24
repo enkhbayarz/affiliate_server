@@ -19,4 +19,22 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
+router.get('/check/email/:email', verifyToken, async (req, res) => {
+  try {
+    const { email } = req.params;
+    logger.info(`/GET /customer/check/email/:email START: ${email}`);
+
+    const foundCustomer = await Customer.findOne({ email: email });
+
+    if (!foundCustomer) {
+      return sendError(res, 'Customer not found', 404);
+    }
+
+    return sendSuccess(res, 'success', 200, 'true');
+  } catch (error) {
+    logger.error(`/GET /customer ERROR: ${error.message}`);
+    return sendError(res, error.message, 500);
+  }
+});
+
 module.exports = router;

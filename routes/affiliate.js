@@ -19,23 +19,18 @@ const { sendMailAffiliate } = require('../utils/mail');
 //Create Affiliate
 router.post('/', verifyToken, async (req, res) => {
   try {
-    const { productId, email, commission } = req.body;
-    logger.info(`/POST /affiliate START: ${productId} ${email} ${commission}`);
+    const { email, list } = req.body;
+    logger.info(`/POST /affiliate START: ${email} ${JSON.stringify(list)}`);
 
     const customer = req.customer;
-
     const merchant = await Merchant.findOne({ customer: customer });
+
     if (!merchant) {
       return sendError(
         res,
         'Can not add affiliate. You have to add product first',
         404
       );
-    }
-
-    const foundProduct = await Product.findById(productId);
-    if (!foundProduct) {
-      return sendError(res, 'product not found!', 404);
     }
 
     const foundCustomer = await Customer.findOne({ email: email });
@@ -51,25 +46,41 @@ router.post('/', verifyToken, async (req, res) => {
       await affiliateCustomer.save();
     }
 
-    const v4Uuid = uuid.v4();
-    const link = `${process.env.BASE_URL}/affiliate/${v4Uuid}`;
+    const affiliates = [];
 
-    const affiliate = new Affiliate({
-      uid: v4Uuid,
-      status: 'ACTIVE',
-      type: 'AFFILIATE',
-      commission: commission,
-      link: link,
-      affiliateCustomer: affiliateCustomer,
-      product: foundProduct,
-      merchant: merchant,
-    });
+    for (const item of list) {
+      const { commission, productId } = item;
 
-    await Affiliate.create(affiliate);
+      const foundProduct = await Product.findById(productId);
 
-    sendMailAffiliate(email, link);
+      if (!foundProduct) {
+        return sendError(res, `Product not found for ID: ${productId}`, 404);
+      }
 
-    return sendSuccess(res, 'success', 200, { affiliate });
+      const v4Uuid = uuid.v4();
+      const link = `${process.env.BASE_URL}/affiliate/${v4Uuid}`;
+
+      const affiliate = new Affiliate({
+        uid: v4Uuid,
+        status: 'ACTIVE',
+        type: 'AFFILIATE',
+        commission: commission,
+        link: link,
+        affiliateCustomer: affiliateCustomer,
+        product: foundProduct,
+        merchant: merchant,
+      });
+
+      await Affiliate.create(affiliate);
+      affiliates.push(affiliate);
+    }
+
+    sendMailAffiliate(
+      email,
+      affiliates.map((affiliate) => affiliate.link).join('\n')
+    );
+
+    return sendSuccess(res, 'success', 200, { affiliates });
   } catch (error) {
     logger.error(`/POST /affiliate ERROR: ${error.message}`);
     return sendError(res, error.message, 500);
