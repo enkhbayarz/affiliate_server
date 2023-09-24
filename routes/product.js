@@ -207,6 +207,7 @@ router.get('/store/uid/:uid', checkBasicAuth, async (req, res) => {
       .populate('option')
       .populate('coverImage')
       .populate('thumbnail')
+      .populate('term')
       .exec();
 
     return sendSuccess(res, 'success', 200, { product });
