@@ -24,6 +24,7 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
     { name: 'phone', width: 480, height: 320 },
     { name: 'tablet', width: 1024, height: 768 },
     { name: 'desktop', width: 1920, height: 1080 },
+    { name: 'thumb', width: 100, height: 100 },
   ];
 
   const { file, type } = req;
@@ -63,6 +64,7 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
       image.phone = imageUrls['phone'];
       image.tablet = imageUrls['tablet'];
       image.desktop = imageUrls['desktop'];
+      image.thumb = imageUrls['thumb'];
 
       await image.save();
 

@@ -11,6 +11,7 @@ const Transaction = require('../models/transaction');
 const Affiliate = require('../models/affiliate');
 const Merchant = require('../models/merchant');
 const Session = require('../models/session');
+const Option = require('../models/option');
 
 const { fetchQpayToken, checkBasicAuth } = require('../middleware/token');
 const { sendSuccess, sendError } = require('../utils/response');
@@ -23,7 +24,7 @@ router.post(
   fetchQpayToken,
   async (req, res) => {
     try {
-      const { affiliateId, email } = req.body;
+      const { affiliateId, email, optionId } = req.body;
 
       logger.info(
         `/POST /create-invoice/affiliate START: ${affiliateId} ${email}`
@@ -37,6 +38,14 @@ router.post(
       const foundProduct = await Product.findById(affiliate.product);
       if (!foundProduct) {
         return sendError(res, 'product not found!', 404);
+      }
+      const selectedOption = await Option.findOne({
+        _id: optionId,
+        _id: { $in: foundProduct.option },
+      });
+
+      if (!selectedOption) {
+        return sendError(res, 'option not found!', 404);
       }
 
       const v4Uuid = uuid.v4();
@@ -52,7 +61,7 @@ router.post(
         minimum_amount: null,
         allow_exceed: false,
         maximum_amount: null,
-        amount: parseInt(foundProduct.price, 10),
+        amount: parseFloat(selectedOption.price.toString()),
         callback_url: `https://mma-service.onrender.com/call-back/${v4Uuid}`,
         sender_staff_code: 'online',
         note: null,
@@ -65,7 +74,7 @@ router.post(
         transactions: [
           {
             description: 'gg',
-            amount: foundProduct.price,
+            amount: selectedOption.price.toString(),
             accounts: [
               {
                 account_bank_code: '390000',
@@ -104,16 +113,29 @@ router.post(
         await foundCustomer.save();
       }
 
+      const priceAsNumber = selectedOption.price;
+      const qpayFee = (priceAsNumber * 0.01).toFixed(2);
+      const afterFee = (priceAsNumber - qpayFee).toFixed(2);
+      const affiliateFee = (afterFee * (affiliate.commission / 100)).toFixed(2);
+      const realAfterFee = (afterFee - affiliateFee).toFixed(2);
+
+      console.log(
+        `${priceAsNumber} ${qpayFee} ${afterFee} ${affiliateFee} ${realAfterFee}`
+      );
+
       const transaction = new Transaction({
         status: 'NEW',
         objectId: response.data.invoice_id,
-        amount: foundProduct.price,
         uid: v4Uuid,
         customer: foundCustomer,
         product: affiliate.product,
         affiliate: affiliate,
         merchant: affiliate.merchant,
         affiliateCustomer: affiliate.affiliateCustomer,
+        option: selectedOption,
+        qpayFee: qpayFee,
+        afterFee: realAfterFee,
+        affiliateFee: affiliateFee,
       });
       await transaction.save();
 
@@ -135,13 +157,22 @@ router.post(
   fetchQpayToken,
   async (req, res) => {
     try {
-      const { productId, email } = req.body;
+      const { productId, email, optionId } = req.body;
 
       logger.info(`/POST /create-invoice START: ${productId} ${email}`);
 
       const foundProduct = await Product.findById(productId);
       if (!foundProduct) {
         return sendError(res, 'product not found!', 404);
+      }
+
+      const selectedOption = await Option.findOne({
+        _id: optionId,
+        _id: { $in: foundProduct.option },
+      });
+
+      if (!selectedOption) {
+        return sendError(res, 'option not found!', 404);
       }
 
       const v4Uuid = uuid.v4();
@@ -157,7 +188,7 @@ router.post(
         minimum_amount: null,
         allow_exceed: false,
         maximum_amount: null,
-        amount: parseInt(foundProduct.price, 10),
+        amount: parseFloat(selectedOption.price.toString()),
         callback_url: `https://mma-service.onrender.com/call-back/${v4Uuid}`,
         sender_staff_code: 'online',
         note: null,
@@ -170,7 +201,7 @@ router.post(
         transactions: [
           {
             description: 'gg',
-            amount: foundProduct.price,
+            amount: selectedOption.price.toString(),
             accounts: [
               {
                 account_bank_code: '390000',
@@ -208,14 +239,22 @@ router.post(
         await foundCustomer.save();
       }
 
+      const priceAsNumber = selectedOption.price;
+      const qpayFee = (priceAsNumber * 0.01).toFixed(2);
+      const afterFee = (priceAsNumber - qpayFee).toFixed(2);
+
+      console.log(`${priceAsNumber} ${qpayFee} ${afterFee}`);
+
       const transaction = new Transaction({
         status: 'NEW',
         objectId: response.data.invoice_id,
-        amount: foundProduct.price,
         uid: v4Uuid,
         customer: foundCustomer,
         product: foundProduct,
         merchant: foundProduct.merchant,
+        option: selectedOption,
+        qpayFee: qpayFee,
+        afterFee: afterFee,
       });
       await transaction.save();
 

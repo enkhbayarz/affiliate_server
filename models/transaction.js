@@ -21,6 +21,15 @@ const transactionSchema = mongoose.Schema(
     qrText: String,
     objectId: String,
     uid: String,
+    qpayFee: {
+      type: mongoose.Types.Decimal128,
+    },
+    afterFee: {
+      type: mongoose.Types.Decimal128,
+    },
+    affiliateFee: {
+      type: mongoose.Types.Decimal128,
+    },
     affiliate: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Affiliate',
@@ -28,6 +37,10 @@ const transactionSchema = mongoose.Schema(
     affiliateCustomer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'AffiliateCustomer',
+    },
+    option: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Option',
     },
   },
   {

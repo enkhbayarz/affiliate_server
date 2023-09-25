@@ -6,6 +6,7 @@ const imageSchema = mongoose.Schema(
     phone: String,
     tablet: String,
     desktop: String,
+    thumb: String,
   },
   {
     timestamps: true,

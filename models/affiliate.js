@@ -7,7 +7,9 @@ const affiliateSchema = mongoose.Schema(
     uid: String,
     startDate: String,
     expireDate: String,
-    commission: Number,
+    commission: {
+      type: mongoose.Types.Decimal128,
+    },
     link: String,
     affiliateCustomer: {
       type: mongoose.Schema.Types.ObjectId,
