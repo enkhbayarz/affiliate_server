@@ -7,6 +7,7 @@ const productSchema = mongoose.Schema(
     price: String,
     summary: String,
     uid: String,
+    limit: Number,
     merchant: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Merchant',

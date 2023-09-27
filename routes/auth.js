@@ -1,20 +1,19 @@
 const express = require('express');
 let router = express.Router();
 
-const Customer = require('../models/customer');
-const ForgetPassword = require('../models/forgetPassword');
-const Otp = require('../models/otp');
+const { Customer, Otp, ForgetPassword, Signup } = require('../models/index');
 
 const uuid = require('uuid');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { body, validationResult } = require('express-validator');
-const secretKey = `${process.env.SECRET_KEY}`;
 
 const { checkBasicAuth, verifyToken } = require('../middleware/token');
 const { sendSuccess, sendError } = require('../utils/response');
-const logger = require('../log');
 const { sendMailForgetPassword } = require('../utils/mail');
+
+const logger = require('../log');
+const secretKey = `${process.env.SECRET_KEY}`;
 
 const generateTokens = (res, email, userId) => {
   const accessToken = jwt.sign({ email, id: userId }, secretKey, {
@@ -39,13 +38,32 @@ const generateTokens = (res, email, userId) => {
   });
 };
 
+router.get('/signup/token/:token/:email', checkBasicAuth, async (req, res) => {
+  try {
+    const { token, email } = req.params;
+    logger.info(`/POST /auth/signup/token/:token START: ${token}  ${email}`);
+
+    const foundSignup = await Signup.findOne({ token: token });
+    if (!foundSignup) {
+      return sendError(res, 'token not found', 404);
+    }
+
+    if (foundSignup.email !== email) {
+      return sendError(res, 'email is not right', 400);
+    }
+    return sendSuccess(res, 'success', 200, 'true');
+  } catch (error) {
+    logger.error(`/POST /auth/signup/token/:token ERROR: ${error.message}`);
+    sendError(res, error.message, 500);
+  }
+});
 router.post(
   '/signup',
   [body('email').isEmail().withMessage('Invalid email format')],
   checkBasicAuth,
   async (req, res) => {
     try {
-      const { email, password, otpCode } = req.body;
+      const { email, password, otpCode, token } = req.body;
 
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -53,7 +71,18 @@ router.post(
         return sendError(res, errorMessages.toString(), 404);
       }
 
-      logger.info(`/POST /auth/signup START: ${email} ${password} ${otpCode}`);
+      logger.info(
+        `/POST /auth/signup START: ${email} ${password} ${otpCode} ${token}`
+      );
+
+      const foundSignup = await Signup.findOne({ token: token });
+      if (!foundSignup) {
+        return sendError(res, 'token not found', 404);
+      }
+
+      if (!foundSignup.email === email) {
+        return sendError(res, 'email is not right', 400);
+      }
 
       const foundOtp = await Otp.findOne({ email: email });
       if (!foundOtp) {

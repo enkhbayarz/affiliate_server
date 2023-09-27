@@ -1,30 +1,31 @@
 const express = require('express');
 let router = express.Router();
 
+const { Merchant } = require('../models/index');
+
 const { checkBasicAuth, verifyToken } = require('../middleware/token');
-const logger = require('../log');
 const { sendSuccess, sendError } = require('../utils/response');
+const logger = require('../log');
 
-const Merchant = require('../models/merchant');
+// router.get('/check/storename/:storeName', verifyToken, async (req, res) => {
+//   try {
+//     logger.info(`/GET /merchant/check/storename/:storeName START: `);
 
-router.get('/check/storename/:storeName', verifyToken, async (req, res) => {
-  try {
-    logger.info(`/GET /merchant/check/storename/:storeName START: `);
+//     const { storeName } = req.params;
 
-    const { storeName } = req.params;
+//     const foundMerchant = await Merchant.findOne({ storeName: storeName });
 
-    const foundMerchant = await Merchant.findOne({ storeName: storeName });
-    if (!foundMerchant) {
-      return sendSuccess(res, 'success', 200, {});
-    }
-    return sendSuccess(res, 'success', 200, { storeName });
-  } catch (error) {
-    logger.error(
-      `/POST /merchant/check/storename/:storeName: ${error.message}`
-    );
-    sendError(res, error.message, 500);
-  }
-});
+//     if (!foundMerchant) {
+//       return sendSuccess(res, 'success', 200, {});
+//     }
+//     return sendSuccess(res, 'success', 200, { storeName });
+//   } catch (error) {
+//     logger.error(
+//       `/POST /merchant/check/storename/:storeName: ${error.message}`
+//     );
+//     sendError(res, error.message, 500);
+//   }
+// });
 
 router.get('/list', checkBasicAuth, async (req, res) => {
   try {

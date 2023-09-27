@@ -1,22 +1,21 @@
 const express = require('express');
 const mongoose = require('mongoose');
-
 require('dotenv').config();
 const logger = require('./log');
 const cors = require('cors');
-
-const customerRoute = require('./routes/customer');
-const productRoute = require('./routes/product');
-const qpayRoute = require('./routes/qpay');
-const affiliateRoute = require('./routes/affiliate');
-const authRoute = require('./routes/auth');
-const payoutRoute = require('./routes/payout');
-const imageRoute = require('./routes/image');
-const mailRoute = require('./routes/mail');
-const otpRoute = require('./routes/otp');
-const merchantRoute = require('./routes/merchant');
-
 const app = express();
+
+const {
+  customerRoute,
+  productRoute,
+  qpayRoute,
+  affiliateRoute,
+  authRoute,
+  payoutRoute,
+  imageRoute,
+  otpRoute,
+  merchantRoute,
+} = require('./routes/index');
 
 //midllewares
 const allowedOrigins = ['https://gum-road.vercel.app', 'http://localhost:3000'];
@@ -36,7 +35,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/static', express.static('public'));
 
 app.get('/', (req, res) => {
-  res.send('Hello World!');
+  res.send('Welcome to Social Club Store');
 });
 
 app.use('/affiliate', affiliateRoute);
@@ -45,7 +44,6 @@ app.use('/customer', customerRoute);
 app.use('/payout', payoutRoute);
 app.use('/product', productRoute);
 app.use('/image', imageRoute);
-app.use('/mail', mailRoute);
 app.use('/otp', otpRoute);
 app.use('/merchant', merchantRoute);
 app.use('/', qpayRoute);

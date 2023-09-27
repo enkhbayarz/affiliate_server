@@ -4,14 +4,13 @@ const axios = require('axios');
 const moment = require('moment');
 const uuid = require('uuid');
 
-const User = require('../models/user');
-const Customer = require('../models/customer');
-const Product = require('../models/product');
-const Transaction = require('../models/transaction');
-const Affiliate = require('../models/affiliate');
-const Merchant = require('../models/merchant');
-const Session = require('../models/session');
-const Option = require('../models/option');
+const {
+  Customer,
+  Product,
+  Transaction,
+  Affiliate,
+  Option,
+} = require('../models/index');
 
 const { fetchQpayToken, checkBasicAuth } = require('../middleware/token');
 const { sendSuccess, sendError } = require('../utils/response');
@@ -166,14 +165,25 @@ router.post(
         return sendError(res, 'product not found!', 404);
       }
 
-      const selectedOption = await Option.findOne({
-        _id: optionId,
-        _id: { $in: foundProduct.option },
-      });
+      const selectedOption = await Option.findById(optionId);
 
       if (!selectedOption) {
         return sendError(res, 'option not found!', 404);
       }
+
+      const isOptionInProduct = foundProduct.option.includes(
+        selectedOption._id
+      );
+
+      if (!isOptionInProduct) {
+        return sendError(
+          res,
+          'Selected option is not associated with the product!',
+          400
+        );
+      }
+
+      console.log(`${JSON.stringify(selectedOption)}`);
 
       const v4Uuid = uuid.v4();
 
@@ -215,6 +225,8 @@ router.post(
         ],
       };
 
+      console.log(data);
+
       const token = req.qpay_access_token;
       const url = 'https://merchant-sandbox.qpay.mn/v2/invoice';
 
@@ -240,7 +252,7 @@ router.post(
       }
 
       const priceAsNumber = selectedOption.price;
-      const qpayFee = (priceAsNumber * 0.01).toFixed(2);
+      const qpayFee = (priceAsNumber / 100).toFixed(2);
       const afterFee = (priceAsNumber - qpayFee).toFixed(2);
 
       console.log(`${priceAsNumber} ${qpayFee} ${afterFee}`);
@@ -260,7 +272,6 @@ router.post(
 
       return sendSuccess(res, 'success', 200, {
         qpay: response.data,
-        transaction: transaction._id,
       });
     } catch (error) {
       logger.error(`/POST /create-invoice ERROR: ${error.message}`);

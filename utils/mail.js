@@ -54,6 +54,14 @@ async function sendMailAffiliate(email, affiliate) {
   });
 }
 
+async function sendMailAffiliateAndSignup(email, affiliate, signup) {
+  return sendMail({
+    email,
+    subject: 'Social Club',
+    text: `Affiliate Link: ${affiliate} \n\n\n Signup Link: ${signup}`,
+  });
+}
+
 async function sendMailForgetPassword(email, forgetPassword) {
   return sendMail({
     email,
@@ -63,8 +71,8 @@ async function sendMailForgetPassword(email, forgetPassword) {
 }
 
 module.exports = {
-  sendMail,
   sendMailOtp,
   sendMailAffiliate,
   sendMailForgetPassword,
+  sendMailAffiliateAndSignup,
 };

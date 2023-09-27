@@ -1,29 +1,61 @@
 const express = require('express');
 let router = express.Router();
-
-const Product = require('../models/product');
-const Merchant = require('../models/merchant');
-const AdditionalInformation = require('../models/additionalInformation');
-const Option = require('../models/option');
-const Image = require('../models/image');
-const Term = require('../models/term');
-const Affiliate = require('../models/affiliate');
-
 const uuid = require('uuid');
+const mongoose = require('mongoose');
 
-const logger = require('../log');
+const {
+  Merchant,
+  Product,
+  AdditionalInformation,
+  Option,
+  Image,
+  Term,
+  Affiliate,
+  Transaction,
+} = require('../models/index');
+
 const { verifyToken, checkBasicAuth } = require('../middleware/token');
 const { sendSuccess, sendError } = require('../utils/response');
+const logger = require('../log');
+const cache = require('memory-cache');
+
+const cacheMiddleware = (duration) => {
+  return (req, res, next) => {
+    const key = '__express__' + req.originalUrl || req.url;
+    const cachedBody = cache.get(key);
+
+    if (cachedBody) {
+      res.setHeader('Content-Type', 'application/json');
+      res.send(cachedBody);
+    } else {
+      res.sendResponse = res.send;
+      res.send = (body) => {
+        cache.put(key, body, duration * 1000);
+        res.setHeader('Content-Type', 'application/json');
+        res.sendResponse(body);
+      };
+      next();
+    }
+  };
+};
+
+const clearCacheMiddleware = (condition) => {
+  return (req, res, next) => {
+    if (condition(req)) {
+      const key = '__express__' + req.originalUrl || req.url;
+      cache.del(key);
+    }
+    next();
+  };
+};
 
 //Product
-
 //Create Product
 router.post('/', verifyToken, async (req, res) => {
   try {
     const {
       title,
       description,
-      price,
       coverImageId,
       thumbnailId,
       summary,
@@ -95,7 +127,6 @@ router.post('/', verifyToken, async (req, res) => {
     const product = new Product({
       title,
       description,
-      price,
       coverImage: foundCoverImage,
       thumbnail: foundThumbnail,
       uid: v4Uuid,
@@ -116,6 +147,7 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
+//  Prodcut nemeh erhtei esehiig shalgana
 router.get('/add-check', verifyToken, async (req, res) => {
   try {
     const foundCustomer = req.customer;
@@ -144,9 +176,123 @@ router.get('/', verifyToken, async (req, res) => {
     if (!foundMerchant) {
       return sendSuccess(res, 'success', 200, []);
     }
-    const product = await Product.find({ merchant: foundMerchant });
+    const products = await Product.find({ merchant: foundMerchant })
+      .populate('thumbnail')
+      .populate('option')
+      .lean();
 
-    return sendSuccess(res, 'success', 200, { product });
+    products.map((product) => {
+      product.option.map((option) => {
+        console.log(option);
+        if (option.price && option.price instanceof mongoose.Types.Decimal128) {
+          option.price = parseFloat(option.price.toString());
+        }
+      });
+    });
+
+    return sendSuccess(res, 'success', 200, { products });
+  } catch (error) {
+    logger.error(`/GET /product ERROR: ${error.message}`);
+    return sendError(res, error.message, 500);
+  }
+});
+
+router.get('/revenue-members', verifyToken, async (req, res) => {
+  try {
+    const foundCustomer = req.customer;
+    logger.info(`/GET /product START: ${JSON.stringify(foundCustomer)}`);
+
+    const foundMerchant = await Merchant.findOne({ customer: foundCustomer });
+    if (!foundMerchant) {
+      return sendSuccess(res, 'success', 200, []);
+    }
+    const product = await Product.findById('6513cd44bb134393a3547845')
+      .populate('thumbnail')
+      .populate('option');
+
+    const revenue = await Transaction.aggregate([
+      {
+        $group: {
+          _id: {
+            merchant: foundMerchant._id,
+            product: product._id,
+          },
+          totalRevenue: { $sum: { $toDouble: '$afterFee' } },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          merchant: '$_id.merchant',
+          product: '$_id.product',
+          totalRevenue: '$totalRevenue',
+        },
+      },
+    ]);
+
+    const members = await Transaction.aggregate([
+      {
+        $group: {
+          _id: {
+            merchant: foundMerchant._id,
+            product: product._id,
+          },
+          uniqueCustomers: { $addToSet: '$customer' },
+        },
+      },
+      {
+        $unwind: '$uniqueCustomers',
+      },
+      {
+        $group: {
+          _id: {
+            merchant: '$_id.merchant',
+            product: '$_id.product',
+          },
+          totalMembers: { $sum: 1 }, // Count the unique customers
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          merchant: '$_id.merchant',
+          product: '$_id.product',
+          totalMembers: '$totalMembers',
+        },
+      },
+    ]);
+
+    const transactionCount = await Transaction.aggregate([
+      {
+        $match: {
+          merchant: foundMerchant._id,
+          status: 'PAID',
+        },
+      },
+      {
+        $group: {
+          _id: {
+            merchant: '$merchant',
+            product: '$product',
+          },
+          transactionCount: { $sum: 1 }, // Count transactions
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          merchant: '$_id.merchant',
+          product: '$_id.product',
+          transactionCount: '$transactionCount',
+        },
+      },
+    ]);
+
+    return sendSuccess(res, 'success', 200, {
+      revenue,
+      members,
+      transactionCount,
+    });
   } catch (error) {
     logger.error(`/GET /product ERROR: ${error.message}`);
     return sendError(res, error.message, 500);
@@ -168,33 +314,52 @@ router.get('/:id', verifyToken, async (req, res) => {
   }
 });
 
-//Get Products by store Name
-router.get('/store/:id', checkBasicAuth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    logger.info(`/GET /product/store/:id START: ${id}`);
+//Get Products by merchant
+router.get(
+  '/store/:id',
+  cacheMiddleware(10),
+  checkBasicAuth,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      logger.info(`/GET /product/store/:id START: ${id}`);
 
-    const foundMerchant = await Merchant.findById(id);
+      const foundMerchant = await Merchant.findById(id);
 
-    if (!foundMerchant) {
-      return sendError(res, 'merchant not found', 404);
+      if (!foundMerchant) {
+        return sendError(res, 'merchant not found', 404);
+      }
+      const products = await Product.find({ merchant: foundMerchant })
+        .populate('additionalInformation')
+        .populate('option')
+        .populate('coverImage')
+        .populate('thumbnail')
+        .populate('term')
+        .lean()
+        .exec();
+
+      products.map((product) => {
+        product.option.map((option) => {
+          console.log(option);
+          if (
+            option.price &&
+            option.price instanceof mongoose.Types.Decimal128
+          ) {
+            option.price = parseFloat(option.price.toString());
+          }
+        });
+      });
+
+      return sendSuccess(res, 'success', 200, {
+        merchant: foundMerchant,
+        product: products,
+      });
+    } catch (error) {
+      logger.error(`/GET /product/store/:storeName ERROR: ${error.message}`);
+      return sendError(res, error.message, 500);
     }
-    const product = await Product.find({ merchant: foundMerchant })
-      .populate('additionalInformation')
-      .populate('option')
-      .populate('coverImage')
-      .populate('thumbnail')
-      .exec();
-
-    return sendSuccess(res, 'success', 200, {
-      merchant: foundMerchant,
-      product: product,
-    });
-  } catch (error) {
-    logger.error(`/GET /product/store/:storeName ERROR: ${error.message}`);
-    return sendError(res, error.message, 500);
   }
-});
+);
 
 //Get Product store by UID
 router.get('/store/uid/:uid', checkBasicAuth, async (req, res) => {
@@ -208,7 +373,15 @@ router.get('/store/uid/:uid', checkBasicAuth, async (req, res) => {
       .populate('coverImage')
       .populate('thumbnail')
       .populate('term')
+      .lean()
       .exec();
+
+    product.option.map((option) => {
+      console.log(option);
+      if (option.price && option.price instanceof mongoose.Types.Decimal128) {
+        option.price = parseFloat(option.price.toString());
+      }
+    });
 
     return sendSuccess(res, 'success', 200, { product });
   } catch (error) {
@@ -222,11 +395,43 @@ router.get('/affiliate/uid/:uid', checkBasicAuth, async (req, res) => {
     const { uid } = req.params;
     logger.info(`/GET /product/affiliate/uid/:uid START: ${uid}`);
 
-    const affiliate = await Affiliate.findOne({ uid: uid })
-      .populate('product')
+    const affiliates = await Affiliate.findOne({ uid: uid })
+      .populate({
+        path: 'product',
+        populate: [
+          {
+            path: 'additionalInformation',
+            model: 'AdditionalInformation',
+          },
+          {
+            path: 'term',
+            model: 'Term',
+          },
+          {
+            path: 'coverImage',
+            model: 'Image',
+          },
+          {
+            path: 'thumbnail',
+            model: 'Image',
+          },
+          {
+            path: 'option',
+            model: 'Option',
+          },
+        ],
+      })
+      .lean()
       .exec();
 
-    return sendSuccess(res, 'success', 200, { affiliate });
+    affiliates.product.option.map((option) => {
+      console.log(option);
+      if (option.price && option.price instanceof mongoose.Types.Decimal128) {
+        option.price = parseFloat(option.price.toString());
+      }
+    });
+
+    return sendSuccess(res, 'success', 200, { affiliates });
   } catch (error) {
     logger.error(`/GET /product/affiliate/uid/:uid ERROR: ${error.message}`);
     return sendError(res, error.message, 500);

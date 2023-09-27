@@ -1,8 +1,9 @@
 const jwt = require('jsonwebtoken');
 const secretKey = `${process.env.SECRET_KEY}`;
-const Customer = require('../models/customer');
 const axios = require('axios');
-const Session = require('../models/session');
+
+const { Session, Customer } = require('../models/index');
+
 const basicAuth = require('basic-auth');
 const { sendSuccess, sendError } = require('../utils/response');
 
@@ -18,7 +19,9 @@ async function verifyToken(req, res, next) {
   try {
     const decoded = jwt.verify(token, secretKey);
 
-    const foundCustomer = await Customer.findById(decoded.id);
+    const foundCustomer = await Customer.findById(decoded.id).select(
+      '-password'
+    );
     if (!foundCustomer) {
       return sendError(res, 'Customer not found!', 404);
     }

@@ -1,10 +1,12 @@
 const express = require('express');
 let router = express.Router();
 
-const Customer = require('../models/customer');
-const Merchant = require('../models/merchant');
-const AffiliateCustomer = require('../models/affiliateCustomer');
-const Affiliate = require('../models/affiliate');
+const {
+  Customer,
+  Merchant,
+  Affiliate,
+  AffiliateCustomer,
+} = require('../models/index');
 
 const logger = require('../log');
 const { sendSuccess, sendError } = require('../utils/response');

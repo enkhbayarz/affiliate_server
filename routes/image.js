@@ -1,14 +1,15 @@
 const express = require('express');
-let router = express.Router();
-
-const s3 = require('../s3');
 const multer = require('multer');
-const { verifyToken } = require('../middleware/token');
-const logger = require('../log');
-const { sendSuccess, sendError } = require('../utils/response');
 const crypto = require('crypto');
 const sharp = require('sharp');
-const Image = require('../models/image');
+let router = express.Router();
+
+const { Image } = require('../models/index');
+
+const { verifyToken } = require('../middleware/token');
+const { sendSuccess, sendError } = require('../utils/response');
+const s3 = require('../s3');
+const logger = require('../log');
 
 const generateFileName = (bytes = 8) => {
   const randomBytes = crypto.randomBytes(bytes);
