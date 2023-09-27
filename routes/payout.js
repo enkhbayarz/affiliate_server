@@ -19,7 +19,7 @@ router.get('/', verifyToken, async (req, res) => {
     if (!foundMerchant) {
       return sendSuccess(res, 'success', 200, {});
     }
-    const val = await get(`payout-${foundMerchant._id}`);
+    const val = await get(`payout/${foundMerchant._id}`);
 
     if (val) {
       return sendSuccess(res, 'success', 200, JSON.parse(val));
@@ -274,7 +274,7 @@ router.get('/', verifyToken, async (req, res) => {
       ]).exec();
 
       await set(
-        `payout-${foundMerchant._id}`,
+        `payout/${foundMerchant._id}`,
         JSON.stringify({
           revenue,
           revenueByDay,

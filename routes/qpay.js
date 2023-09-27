@@ -38,13 +38,22 @@ router.post(
       if (!foundProduct) {
         return sendError(res, 'product not found!', 404);
       }
-      const selectedOption = await Option.findOne({
-        _id: optionId,
-        _id: { $in: foundProduct.option },
-      });
+      const selectedOption = await Option.findById(optionId);
 
       if (!selectedOption) {
         return sendError(res, 'option not found!', 404);
+      }
+
+      const isOptionInProduct = foundProduct.option.includes(
+        selectedOption._id
+      );
+
+      if (!isOptionInProduct) {
+        return sendError(
+          res,
+          'Selected option is not associated with the product!',
+          400
+        );
       }
 
       const v4Uuid = uuid.v4();
@@ -135,8 +144,8 @@ router.post(
       await transaction.save();
 
       return sendSuccess(res, 'success', 200, {
+        transaction: { id: transaction._id, uid: v4Uuid },
         qpay: response.data,
-        transaction: transaction._id,
       });
     } catch (error) {
       logger.error(`/POST /create-invoice/affiliate ERROR: ${error.message}`);
@@ -261,6 +270,7 @@ router.post(
       await transaction.save();
 
       return sendSuccess(res, 'success', 200, {
+        transaction: { id: transaction._id, uid: v4Uuid },
         qpay: response.data,
       });
     } catch (error) {
