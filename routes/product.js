@@ -20,9 +20,10 @@ const logger = require('../log');
 const cache = require('memory-cache');
 const { set, get } = require('../redis');
 
-const cacheMiddleware = (duration) => {
+const cacheMiddleware = (duration, url) => {
   return (req, res, next) => {
     const key = '__express__' + req.originalUrl || req.url;
+    console.log(key);
     const cachedBody = cache.get(key);
 
     if (cachedBody) {
@@ -40,10 +41,10 @@ const cacheMiddleware = (duration) => {
   };
 };
 
-const clearCacheMiddleware = (condition) => {
+const clearCacheMiddleware = (condition, url) => {
   return (req, res, next) => {
     if (condition(req)) {
-      const key = '__express__' + req.originalUrl || req.url;
+      const key = '__express__' + url;
       cache.del(key);
     }
     next();
@@ -140,6 +141,9 @@ router.post('/', verifyToken, async (req, res) => {
 
     await newTerm.save();
     await Product.create(product);
+
+    const key = `__express__/product/store/${merchant._id}`;
+    cache.del(key);
 
     return sendSuccess(res, 'success', 200, { product });
   } catch (error) {
