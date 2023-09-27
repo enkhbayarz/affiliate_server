@@ -421,6 +421,13 @@ router.get('/affiliate/uid/:uid', checkBasicAuth, async (req, res) => {
       .lean()
       .exec();
 
+    if (
+      affiliates.commission &&
+      affiliates.commission instanceof mongoose.Types.Decimal128
+    ) {
+      affiliates.commission = parseFloat(affiliates.commission.toString());
+    }
+
     affiliates.product.option.map((option) => {
       if (option.price && option.price instanceof mongoose.Types.Decimal128) {
         option.price = parseFloat(option.price.toString());

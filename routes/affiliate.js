@@ -438,6 +438,12 @@ router.get('/uid/:uid', checkBasicAuth, async (req, res) => {
       affiliate.commission = parseFloat(affiliate.commission.toString());
     }
 
+    affiliate.product.option.map((option) => {
+      if (option.price && option.price instanceof mongoose.Types.Decimal128) {
+        option.price = parseFloat(option.price.toString());
+      }
+    });
+
     return sendSuccess(res, 'success', 200, { affiliate });
   } catch (error) {
     logger.error(`/GET /affiliate/uid/:uid ERROR: ${error.message}`);

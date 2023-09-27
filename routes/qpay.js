@@ -372,6 +372,7 @@ router.get('/call-back/affiliate/:id', fetchQpayToken, async (req, res) => {
   }
 });
 
+//TODO enendeer expire hiih 5 min
 router.get('/qpay/check/transaction/:id', checkBasicAuth, async (req, res) => {
   try {
     const { id } = req.params;

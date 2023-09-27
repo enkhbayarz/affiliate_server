@@ -215,7 +215,7 @@ router.post('/forgot-password', checkBasicAuth, async (req, res) => {
       foundForgetPassword.uid = uid;
       await foundForgetPassword.save();
 
-      const link = `${process.env.BASE_URL}/forget-password/${uid}`;
+      const link = `${process.env.WEB_BASE_URL}/api/auth/forget-password/${uid}`;
 
       sendMailForgetPassword(email, link);
 

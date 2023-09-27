@@ -25,6 +25,7 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
+//TODO ???
 router.get('/check/email/:email', verifyToken, async (req, res) => {
   try {
     const { email } = req.params;
