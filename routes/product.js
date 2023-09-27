@@ -18,6 +18,7 @@ const { verifyToken, checkBasicAuth } = require('../middleware/token');
 const { sendSuccess, sendError } = require('../utils/response');
 const logger = require('../log');
 const cache = require('memory-cache');
+const { set, get } = require('../redis');
 
 const cacheMiddleware = (duration) => {
   return (req, res, next) => {
@@ -205,93 +206,122 @@ router.get('/revenue-members', verifyToken, async (req, res) => {
     if (!foundMerchant) {
       return sendSuccess(res, 'success', 200, []);
     }
-    const product = await Product.findById('6513cd44bb134393a3547845')
-      .populate('thumbnail')
-      .populate('option');
 
-    const revenue = await Transaction.aggregate([
-      {
-        $group: {
-          _id: {
-            merchant: foundMerchant._id,
-            product: product._id,
-          },
-          totalRevenue: { $sum: { $toDouble: '$afterFee' } },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          merchant: '$_id.merchant',
-          product: '$_id.product',
-          totalRevenue: '$totalRevenue',
-        },
-      },
-    ]);
+    const val = await get(`product/revenue-members/${foundMerchant._id}`);
 
-    const members = await Transaction.aggregate([
-      {
-        $group: {
-          _id: {
+    if (val) {
+      return sendSuccess(res, 'success', 200, JSON.parse(val));
+    } else {
+      const product = await Product.find({ merchant: foundMerchant });
+
+      const productIds = product.map((p) => p._id);
+
+      const revenue = await Transaction.aggregate([
+        {
+          $match: {
+            product: { $in: productIds },
             merchant: foundMerchant._id,
-            product: product._id,
+            status: 'PAID',
           },
-          uniqueCustomers: { $addToSet: '$customer' },
         },
-      },
-      {
-        $unwind: '$uniqueCustomers',
-      },
-      {
-        $group: {
-          _id: {
+        {
+          $group: {
+            _id: {
+              merchant: '$merchant',
+              product: '$product',
+            },
+            totalRevenue: { $sum: { $toDouble: '$afterFee' } },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
             merchant: '$_id.merchant',
             product: '$_id.product',
+            totalRevenue: '$totalRevenue',
           },
-          totalMembers: { $sum: 1 }, // Count the unique customers
         },
-      },
-      {
-        $project: {
-          _id: 0,
-          merchant: '$_id.merchant',
-          product: '$_id.product',
-          totalMembers: '$totalMembers',
-        },
-      },
-    ]);
+      ]);
 
-    const transactionCount = await Transaction.aggregate([
-      {
-        $match: {
-          merchant: foundMerchant._id,
-          status: 'PAID',
-        },
-      },
-      {
-        $group: {
-          _id: {
-            merchant: '$merchant',
-            product: '$product',
+      const members = await Transaction.aggregate([
+        {
+          $match: {
+            product: { $in: productIds },
+            merchant: foundMerchant._id,
+            status: 'PAID',
           },
-          transactionCount: { $sum: 1 }, // Count transactions
         },
-      },
-      {
-        $project: {
-          _id: 0,
-          merchant: '$_id.merchant',
-          product: '$_id.product',
-          transactionCount: '$transactionCount',
+        {
+          $group: {
+            _id: {
+              merchant: '$merchant',
+              product: '$product',
+            },
+            uniqueCustomers: { $addToSet: '$customer' },
+          },
         },
-      },
-    ]);
+        {
+          $unwind: '$uniqueCustomers',
+        },
+        {
+          $group: {
+            _id: {
+              merchant: '$_id.merchant',
+              product: '$_id.product',
+            },
+            totalMembers: { $sum: 1 },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            merchant: '$_id.merchant',
+            product: '$_id.product',
+            totalMembers: '$totalMembers',
+          },
+        },
+      ]);
 
-    return sendSuccess(res, 'success', 200, {
-      revenue,
-      members,
-      transactionCount,
-    });
+      const sales = await Transaction.aggregate([
+        {
+          $match: {
+            merchant: foundMerchant._id,
+            status: 'PAID',
+          },
+        },
+        {
+          $group: {
+            _id: {
+              merchant: '$merchant',
+              product: '$product',
+            },
+            transactionCount: { $sum: 1 }, // Count transactions
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            merchant: '$_id.merchant',
+            product: '$_id.product',
+            transactionCount: '$transactionCount',
+          },
+        },
+      ]);
+
+      await set(
+        `product/revenue-members/${foundMerchant._id}`,
+        JSON.stringify({
+          revenue,
+          members,
+          sales,
+        })
+      );
+      return sendSuccess(res, 'success', 200, {
+        revenue,
+        members,
+        sales,
+      });
+    }
   } catch (error) {
     logger.error(`/GET /product ERROR: ${error.message}`);
     return sendError(res, error.message, 500);
@@ -316,7 +346,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 //Get Products by merchant
 router.get(
   '/store/:id',
-  cacheMiddleware(10),
+  cacheMiddleware(60 * 60),
   checkBasicAuth,
   async (req, res) => {
     try {
