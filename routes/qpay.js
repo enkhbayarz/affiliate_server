@@ -118,10 +118,6 @@ router.post(
       const affiliateFee = (afterFee * (affiliate.commission / 100)).toFixed(2);
       const realAfterFee = (afterFee - affiliateFee).toFixed(2);
 
-      console.log(
-        `${priceAsNumber} ${qpayFee} ${afterFee} ${affiliateFee} ${realAfterFee}`
-      );
-
       const transaction = new Transaction({
         status: 'NEW',
         objectId: response.data.invoice_id,
@@ -183,8 +179,6 @@ router.post(
         );
       }
 
-      console.log(`${JSON.stringify(selectedOption)}`);
-
       const v4Uuid = uuid.v4();
 
       const data = {
@@ -225,8 +219,6 @@ router.post(
         ],
       };
 
-      console.log(data);
-
       const token = req.qpay_access_token;
       const url = 'https://merchant-sandbox.qpay.mn/v2/invoice';
 
@@ -254,8 +246,6 @@ router.post(
       const priceAsNumber = selectedOption.price;
       const qpayFee = (priceAsNumber / 100).toFixed(2);
       const afterFee = (priceAsNumber - qpayFee).toFixed(2);
-
-      console.log(`${priceAsNumber} ${qpayFee} ${afterFee}`);
 
       const transaction = new Transaction({
         status: 'NEW',

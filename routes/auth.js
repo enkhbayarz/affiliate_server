@@ -251,7 +251,6 @@ router.get('/password-reset/:uid', checkBasicAuth, async (req, res) => {
     const currentTime = new Date();
     const timeDifference = currentTime - foundForgetPassword.updatedAt;
     const timeDifferenceInSeconds = timeDifference / 1000;
-    console.log(timeDifferenceInSeconds);
     if (timeDifferenceInSeconds > 300) {
       return sendError(res, 'Link has expired send new one', 400);
     }

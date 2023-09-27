@@ -58,8 +58,6 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
         })
       );
 
-      console.log(imageUrls);
-
       const image = new Image();
       image.type = type;
       image.phone = imageUrls['phone'];

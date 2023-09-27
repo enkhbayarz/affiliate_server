@@ -183,7 +183,6 @@ router.get('/', verifyToken, async (req, res) => {
 
     products.map((product) => {
       product.option.map((option) => {
-        console.log(option);
         if (option.price && option.price instanceof mongoose.Types.Decimal128) {
           option.price = parseFloat(option.price.toString());
         }
@@ -340,7 +339,6 @@ router.get(
 
       products.map((product) => {
         product.option.map((option) => {
-          console.log(option);
           if (
             option.price &&
             option.price instanceof mongoose.Types.Decimal128
@@ -377,7 +375,6 @@ router.get('/store/uid/:uid', checkBasicAuth, async (req, res) => {
       .exec();
 
     product.option.map((option) => {
-      console.log(option);
       if (option.price && option.price instanceof mongoose.Types.Decimal128) {
         option.price = parseFloat(option.price.toString());
       }
@@ -425,7 +422,6 @@ router.get('/affiliate/uid/:uid', checkBasicAuth, async (req, res) => {
       .exec();
 
     affiliates.product.option.map((option) => {
-      console.log(option);
       if (option.price && option.price instanceof mongoose.Types.Decimal128) {
         option.price = parseFloat(option.price.toString());
       }
@@ -452,7 +448,6 @@ router.get('/affiliate/uid/:uid', checkBasicAuth, async (req, res) => {
 //       res.status(200).json(updatedProduct)
 
 //   } catch (error) {
-//       console.log(error)
 //       res.status(500).json({message: error.message})
 //   }
 
@@ -471,7 +466,6 @@ router.get('/affiliate/uid/:uid', checkBasicAuth, async (req, res) => {
 //       res.status(200).json(product)
 
 //   } catch (error) {
-//       console.log(error)
 //       res.status(500).json({message: error.message})
 //   }
 
