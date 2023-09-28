@@ -6,7 +6,8 @@ const { Merchant, Transaction } = require('../models/index');
 const { verifyToken } = require('../middleware/token');
 const { sendSuccess, sendError } = require('../utils/response');
 const logger = require('../log');
-const { set, get } = require('../redis');
+const { set, get, getAsync } = require('../redis');
+const { payoutMerchantRedis } = require('../utils/const');
 
 //Payout
 //Get Payout
@@ -19,7 +20,7 @@ router.get('/', verifyToken, async (req, res) => {
     if (!foundMerchant) {
       return sendSuccess(res, 'success', 200, {});
     }
-    const val = await get(`payout/${foundMerchant._id}`);
+    const val = await get(`${payoutMerchantRedis}${foundMerchant._id}`);
 
     if (val) {
       return sendSuccess(res, 'success', 200, JSON.parse(val));
@@ -274,7 +275,7 @@ router.get('/', verifyToken, async (req, res) => {
       ]).exec();
 
       await set(
-        `payout/${foundMerchant._id}`,
+        `${payoutMerchantRedis}${foundMerchant._id}`,
         JSON.stringify({
           revenue,
           revenueByDay,

@@ -13,6 +13,7 @@ const Term = require('./term');
 const Transaction = require('./transaction');
 const User = require('./user');
 const Signup = require('./signup');
+const BankInfo = require('./bankInfo');
 
 module.exports = {
   AdditionalInformation,
@@ -30,4 +31,5 @@ module.exports = {
   Transaction,
   User,
   Signup,
+  BankInfo,
 };

@@ -6,6 +6,7 @@ const {
   Merchant,
   Affiliate,
   AffiliateCustomer,
+  BankInfo,
 } = require('../models/index');
 
 const logger = require('../log');
@@ -65,6 +66,28 @@ router.get('/check/email/:email', verifyToken, async (req, res) => {
   } catch (error) {
     logger.error(`/GET /customer ERROR: ${error.message}`);
     return sendError(res, error.message, 500);
+  }
+});
+
+router.post('/bankInfo', verifyToken, async (req, res) => {
+  try {
+    logger.info(`/POST /customer/bankInfo START: `);
+    const customer = req.customer;
+
+    const { accountName, accountNumber, bankId } = req.body;
+
+    const bankInfo = new BankInfo();
+    bankInfo.accountName = accountName;
+    bankInfo.accountNumber = accountNumber;
+    bankInfo.bankId = bankId;
+    bankInfo.customer = customer;
+
+    await bankInfo.save();
+
+    return sendSuccess(res, 'success', 200, { bankInfo });
+  } catch (error) {
+    logger.error(`/POST /customer/bankInfo ERROR: ${error.message}`);
+    sendError(res, error.message, 500);
   }
 });
 

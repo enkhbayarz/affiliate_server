@@ -1,15 +1,19 @@
 const { createClient } = require('redis');
 const logger = require('../log');
+const { promisify } = require('util');
+
+const client = createClient({
+  password: 'Xk99TWezkDCQgh45EfZrGjw1vgK8Jph7',
+  socket: {
+    host: 'redis-14266.c295.ap-southeast-1-1.ec2.cloud.redislabs.com',
+    port: 14266,
+  },
+});
+
+// const getAsync = promisify(client.get).bind(client);
 
 async function get(key) {
   try {
-    const client = createClient({
-      password: 'Xk99TWezkDCQgh45EfZrGjw1vgK8Jph7',
-      socket: {
-        host: 'redis-14266.c295.ap-southeast-1-1.ec2.cloud.redislabs.com',
-        port: 14266,
-      },
-    });
     await client.connect();
 
     const val = await client.get(key);
@@ -21,15 +25,9 @@ async function get(key) {
     logger.error(`redis get ERROR: ${error.message}`);
   }
 }
+
 async function set(key, value) {
   try {
-    const client = createClient({
-      password: 'Xk99TWezkDCQgh45EfZrGjw1vgK8Jph7',
-      socket: {
-        host: 'redis-14266.c295.ap-southeast-1-1.ec2.cloud.redislabs.com',
-        port: 14266,
-      },
-    });
     await client.connect();
 
     await client.set(key, value);
@@ -41,13 +39,6 @@ async function set(key, value) {
 }
 async function del(key) {
   try {
-    const client = createClient({
-      password: 'Xk99TWezkDCQgh45EfZrGjw1vgK8Jph7',
-      socket: {
-        host: 'redis-14266.c295.ap-southeast-1-1.ec2.cloud.redislabs.com',
-        port: 14266,
-      },
-    });
     await client.connect();
 
     await client.del(key);
@@ -57,4 +48,20 @@ async function del(key) {
     logger.error(`redis del ERROR: ${error.message}`);
   }
 }
-module.exports = { get, set };
+
+async function setCustomerCount(key) {
+  try {
+    await client.connect();
+
+    await client.incr(key);
+
+    client.disconnect();
+
+    return true;
+  } catch (error) {
+    logger.error(`redis setCustomerCount ERROR: ${error.message}`);
+    return false;
+  }
+}
+
+module.exports = { get, set, del, setCustomerCount };

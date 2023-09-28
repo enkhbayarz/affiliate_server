@@ -22,6 +22,10 @@ const {
   sendMailAffiliateAndSignup,
 } = require('../utils/mail');
 const { set, get } = require('../redis');
+const {
+  affiliateOwnRevenueRedis,
+  affiliateMerchantRevenueRedis,
+} = require('../utils/const');
 
 //Affiliate
 
@@ -203,7 +207,9 @@ router.get('/own/revenue', verifyToken, async (req, res) => {
       return sendSuccess(res, 'success', 200, []);
     }
 
-    const val = await get(`affiliate/own/revenue/${affiliateCustomer._id}`);
+    const val = await get(
+      `${affiliateOwnRevenueRedis}${affiliateCustomer._id}`
+    );
 
     if (val) {
       console.log('val valid');
@@ -270,7 +276,7 @@ router.get('/own/revenue', verifyToken, async (req, res) => {
       ]);
 
       await set(
-        `affiliate/own/revenue/${affiliateCustomer._id}`,
+        `${affiliateOwnRevenueRedis}${affiliateCustomer._id}`,
         JSON.stringify({ data, totalSales })
       );
 
@@ -346,7 +352,9 @@ router.get('/merchant/revenue', verifyToken, async (req, res) => {
     if (!foundMerchant) {
       return sendSuccess(res, 'success', 200, []);
     }
-    const val = await get(`affiliate/merchant/revenue/${foundMerchant._id}`);
+    const val = await get(
+      `${affiliateMerchantRevenueRedis}${foundMerchant._id}`
+    );
 
     if (val) {
       console.log('val valid');
@@ -411,7 +419,7 @@ router.get('/merchant/revenue', verifyToken, async (req, res) => {
       ]);
 
       await set(
-        `affiliate/merchant/revenue/${foundMerchant._id}`,
+        `${affiliateMerchantRevenueRedis}${foundMerchant._id}`,
         JSON.stringify({ data, totalSales })
       );
 

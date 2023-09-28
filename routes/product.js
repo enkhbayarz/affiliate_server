@@ -19,6 +19,7 @@ const { sendSuccess, sendError } = require('../utils/response');
 const logger = require('../log');
 const cache = require('memory-cache');
 const { set, get } = require('../redis');
+const { productRevenueMembersRedis } = require('../utils/const');
 
 const cacheMiddleware = (duration, url) => {
   return (req, res, next) => {
@@ -211,7 +212,7 @@ router.get('/revenue-members', verifyToken, async (req, res) => {
       return sendSuccess(res, 'success', 200, []);
     }
 
-    const val = await get(`product/revenue-members/${foundMerchant._id}`);
+    const val = await get(`${productRevenueMembersRedis}${foundMerchant._id}`);
 
     if (val) {
       return sendSuccess(res, 'success', 200, JSON.parse(val));
@@ -313,7 +314,7 @@ router.get('/revenue-members', verifyToken, async (req, res) => {
       ]);
 
       await set(
-        `product/revenue-members/${foundMerchant._id}`,
+        `${productRevenueMembersRedis}${foundMerchant._id}`,
         JSON.stringify({
           revenue,
           members,

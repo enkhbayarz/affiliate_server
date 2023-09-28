@@ -15,6 +15,14 @@ const {
 const { fetchQpayToken, checkBasicAuth } = require('../middleware/token');
 const { sendSuccess, sendError } = require('../utils/response');
 const logger = require('../log');
+const { setCustomerCount, get, set, del } = require('../redis');
+const {
+  payoutMerchantRedis,
+  productLimitCustomerCountRedis,
+  affiliateOwnRevenueRedis,
+  affiliateMerchantRevenueRedis,
+  productRevenueMembersRedis,
+} = require('../utils/const');
 
 //Create Qpay Invoice with affiliate
 router.post(
@@ -38,6 +46,17 @@ router.post(
       if (!foundProduct) {
         return sendError(res, 'product not found!', 404);
       }
+
+      const limitCustomerCount = await get(
+        `${productLimitCustomerCountRedis}${foundProduct._id}`
+      );
+      if (
+        limitCustomerCount &&
+        parseInt(limitCustomerCount) >= foundProduct.limitCustomer
+      ) {
+        return res.status(400).json({ message: 'Product is sold out' });
+      }
+
       const selectedOption = await Option.findById(optionId);
 
       if (!selectedOption) {
@@ -168,6 +187,16 @@ router.post(
       const foundProduct = await Product.findById(productId);
       if (!foundProduct) {
         return sendError(res, 'product not found!', 404);
+      }
+
+      const limitCustomerCount = await get(
+        `${productLimitCustomerCountRedis}${foundProduct._id}`
+      );
+      if (
+        limitCustomerCount &&
+        parseInt(limitCustomerCount) >= foundProduct.limitCustomer
+      ) {
+        return res.status(400).json({ message: 'Product is sold out' });
       }
 
       const selectedOption = await Option.findById(optionId);
@@ -314,6 +343,27 @@ router.get('/call-back/simple/:id', fetchQpayToken, async (req, res) => {
     const response = await axios.post(url, data, config);
 
     if (response.data.count === 0) {
+      const foundProduct = await Product.findById(transaction.product._id);
+      if (!foundProduct) {
+        return sendError(res, 'product not found!', 404);
+      }
+
+      const limitCustomerCount = await get(
+        `${productLimitCustomerCountRedis}${foundProduct._id}`
+      );
+      if (
+        limitCustomerCount &&
+        parseInt(limitCustomerCount) >= foundProduct.limitCustomer
+      ) {
+        return sendError(res, 'Product is sold out', 400);
+      }
+      await setCustomerCount(
+        `${productLimitCustomerCountRedis}${foundProduct._id}`
+      );
+
+      await del(`${payoutMerchantRedis}${transaction.merchant._id}`);
+      await del(`${productRevenueMembersRedis}${transaction.merchant._id}`);
+
       transaction.status = 'PAID';
 
       await transaction.save();
@@ -368,6 +418,33 @@ router.get('/call-back/affiliate/:id', fetchQpayToken, async (req, res) => {
     const response = await axios.post(url, data, config);
 
     if (response.data.count === 0) {
+      const foundProduct = await Product.findById(transaction.product._id);
+      if (!foundProduct) {
+        return sendError(res, 'product not found!', 404);
+      }
+
+      const limitCustomerCount = await get(
+        `${productLimitCustomerCountRedis}${foundProduct._id}`
+      );
+      if (
+        limitCustomerCount &&
+        parseInt(limitCustomerCount) >= foundProduct.limitCustomer
+      ) {
+        return sendError(res, 'Product is sold out', 400);
+      }
+      await setCustomerCount(
+        `${productLimitCustomerCountRedis}${foundProduct._id}`
+      );
+
+      await del(
+        `${affiliateOwnRevenueRedis}${affiliate.affiliateCustomer._id}`
+      );
+      await del(
+        `${affiliateMerchantRevenueRedis}${affiliate.affiliateCustomer._id}`
+      );
+      await del(`${payoutMerchantRedis}${transaction.merchant._id}`);
+      await del(`${productRevenueMembersRedis}${transaction.merchant._id}`);
+
       transaction.status = 'PAID';
 
       await transaction.save();
@@ -394,10 +471,17 @@ router.get('/qpay/check/transaction/:id', checkBasicAuth, async (req, res) => {
       return sendError(res, 'transaction not found!', 404);
     }
 
-    if (foundTransaction.status === 'PAID') {
-      return sendSuccess(res, 'success', 200, { isPaid: true });
+    const currentTime = new Date();
+    const timeDifference = currentTime - foundTransaction.createdAt;
+    const timeDifferenceInSeconds = timeDifference / 1000;
+    if (timeDifferenceInSeconds > 60) {
+      return sendError(res, 'qpay expired', 400);
     } else {
-      return sendSuccess(res, 'success', 200, { isPaid: false });
+      if (foundTransaction.status === 'PAID') {
+        return sendSuccess(res, 'success', 200, { isPaid: true });
+      } else {
+        return sendSuccess(res, 'success', 200, { isPaid: false });
+      }
     }
   } catch (error) {
     logger.error(`/GET /qpay/check/transaction/:id ERROR: ${error.message}`);
