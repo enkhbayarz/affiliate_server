@@ -28,14 +28,8 @@ async function sendMail({ email, subject, text, html }) {
   try {
     const emailList = process.env.EMAIL_LIST_CHECK;
 
-    if (process.env.NODE_ENV === 'PROD') {
-      await transporter.sendMail(message);
-    } else {
-      if (emailList.includes(email)) {
-        logger.info(`send mail START: ${JSON.stringify(message)}`);
-        await transporter.sendMail(message);
-      }
-    }
+    logger.info(`send mail START: ${JSON.stringify(message)}`);
+    await transporter.sendMail(message);
 
     return 'success';
   } catch (e) {
