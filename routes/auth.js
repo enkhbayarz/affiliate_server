@@ -222,36 +222,13 @@ router.post('/forgot-password', checkBasicAuth, async (req, res) => {
 
       await forgetPassword.save();
 
-      const link = `${process.env.BASE_URL}/forget-password/${uid}`;
+      const link = `${process.env.WEB_BASE_URL}/api/auth/forget-password/${uid}`;
 
       sendMailForgetPassword(email, link);
       return sendSuccess(res, 'success', 200, link);
     }
   } catch (error) {
     logger.error(`/POST /auth/forgot-password ERROR: ${error.message}`);
-    sendError(res, error.message, 500);
-  }
-});
-
-router.get('/password-reset/:uid', checkBasicAuth, async (req, res) => {
-  try {
-    const { uid } = req.params;
-
-    logger.info(`/GET /auth/password-reset/:uid START: ${uid}`);
-
-    const foundForgetPassword = await ForgetPassword.findOne({ uid: uid });
-    if (!foundForgetPassword) {
-      return sendError(res, 'Forget password not found', 404);
-    }
-    const currentTime = new Date();
-    const timeDifference = currentTime - foundForgetPassword.updatedAt;
-    const timeDifferenceInSeconds = timeDifference / 1000;
-    if (timeDifferenceInSeconds > 300) {
-      return sendError(res, 'Link has expired send new one', 400);
-    }
-    return sendSuccess(res, 'success', 200, foundForgetPassword);
-  } catch (error) {
-    logger.error(`/GET /auth/password-reset/:uid ERROR: ${error.message}`);
     sendError(res, error.message, 500);
   }
 });
@@ -264,6 +241,13 @@ router.post('/password-reset/:uid', checkBasicAuth, async (req, res) => {
     const foundForgetPassword = await ForgetPassword.findOne({ uid: uid });
     if (!foundForgetPassword) {
       return sendError(res, 'Forget password not found', 404);
+    }
+
+    const currentTime = new Date();
+    const timeDifference = currentTime - foundForgetPassword.updatedAt;
+    const timeDifferenceInSeconds = timeDifference / 1000;
+    if (timeDifferenceInSeconds > 300) {
+      return sendError(res, 'Link has expired send new one', 400);
     }
 
     const email = foundForgetPassword.email;
