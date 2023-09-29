@@ -234,7 +234,7 @@ router.get('/revenue-members', verifyToken, async (req, res) => {
               merchant: '$merchant',
               product: '$product',
             },
-            totalRevenue: { $sum: { $toDouble: '$afterFee' } },
+            totalAmount: { $sum: { $toDouble: '$afterFee' } },
           },
         },
         {
@@ -242,7 +242,7 @@ router.get('/revenue-members', verifyToken, async (req, res) => {
             _id: 0,
             merchant: '$_id.merchant',
             product: '$_id.product',
-            totalRevenue: '$totalRevenue',
+            totalAmount: '$totalAmount',
           },
         },
       ]);
@@ -281,7 +281,7 @@ router.get('/revenue-members', verifyToken, async (req, res) => {
             _id: 0,
             merchant: '$_id.merchant',
             product: '$_id.product',
-            totalMembers: '$totalMembers',
+            count: '$totalMembers',
           },
         },
       ]);
@@ -307,7 +307,7 @@ router.get('/revenue-members', verifyToken, async (req, res) => {
             _id: 0,
             merchant: '$_id.merchant',
             product: '$_id.product',
-            transactionCount: '$transactionCount',
+            count: '$transactionCount',
           },
         },
       ]);

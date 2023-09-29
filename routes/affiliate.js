@@ -85,7 +85,7 @@ router.post('/', verifyToken, async (req, res) => {
         product: productId,
       });
 
-      if (!foundAffiliates.length === 0) {
+      if (foundAffiliates.length !== 0) {
         return sendError(
           res,
           `Already created this affiliate on customer with product`,
@@ -220,7 +220,7 @@ router.get('/own/revenue', verifyToken, async (req, res) => {
 
       const affiliateIds = affiliates.map((affiliate) => affiliate._id);
 
-      const data = await Transaction.aggregate([
+      const revenue = await Transaction.aggregate([
         {
           $match: {
             affiliate: { $in: affiliateIds },
@@ -234,7 +234,7 @@ router.get('/own/revenue', verifyToken, async (req, res) => {
               affiliateCustomer: affiliateCustomer._id,
               affiliate: '$affiliate',
             },
-            totalRevenue: { $sum: { $toDouble: '$affiliateFee' } },
+            totalAmount: { $sum: { $toDouble: '$affiliateFee' } },
           },
         },
         {
@@ -242,11 +242,11 @@ router.get('/own/revenue', verifyToken, async (req, res) => {
             _id: 0,
             affiliateCustomer: '$_id.affiliateCustomer',
             affiliate: '$_id.affiliate',
-            totalRevenue: '$totalRevenue',
+            totalAmount: '$totalAmount',
           },
         },
       ]);
-      const totalSales = await Transaction.aggregate([
+      const sales = await Transaction.aggregate([
         {
           $match: {
             affiliate: { $in: affiliateIds },
@@ -260,7 +260,7 @@ router.get('/own/revenue', verifyToken, async (req, res) => {
               affiliateCustomer: affiliateCustomer._id,
               affiliate: '$affiliate',
             },
-            totalTransactions: { $sum: 1 },
+            count: { $sum: 1 },
           },
         },
         {
@@ -268,17 +268,17 @@ router.get('/own/revenue', verifyToken, async (req, res) => {
             _id: 0,
             affiliateCustomer: '$_id.affiliateCustomer',
             affiliate: '$_id.affiliate',
-            totalTransactions: '$totalTransactions',
+            count: '$count',
           },
         },
       ]);
 
       await set(
         `${affiliateOwnRevenueRedis}${affiliateCustomer._id}`,
-        JSON.stringify({ data, totalSales })
+        JSON.stringify({ revenue, sales })
       );
 
-      return sendSuccess(res, 'success', 200, { data, totalSales });
+      return sendSuccess(res, 'success', 200, { revenue, sales });
     }
   } catch (error) {
     logger.error(`/POST /affiliate/own ERROR: ${error.message}`);
@@ -361,7 +361,7 @@ router.get('/merchant/revenue', verifyToken, async (req, res) => {
 
       const affiliateIds = affiliates.map((affiliate) => affiliate._id);
 
-      const data = await Transaction.aggregate([
+      const revenue = await Transaction.aggregate([
         {
           $match: {
             affiliate: { $in: affiliateIds },
@@ -375,7 +375,7 @@ router.get('/merchant/revenue', verifyToken, async (req, res) => {
               merchant: foundMerchant._id,
               affiliate: '$affiliate',
             },
-            totalRevenue: { $sum: { $toDouble: '$afterFee' } },
+            totalAmount: { $sum: { $toDouble: '$afterFee' } },
           },
         },
         {
@@ -383,11 +383,11 @@ router.get('/merchant/revenue', verifyToken, async (req, res) => {
             _id: 0,
             merchant: '$_id.merchant',
             affiliate: '$_id.affiliate',
-            totalRevenue: '$totalRevenue',
+            totalAmount: '$totalAmount',
           },
         },
       ]);
-      const totalSales = await Transaction.aggregate([
+      const sales = await Transaction.aggregate([
         {
           $match: {
             affiliate: { $in: affiliateIds },
@@ -401,7 +401,7 @@ router.get('/merchant/revenue', verifyToken, async (req, res) => {
               merchant: foundMerchant._id,
               affiliate: '$affiliate',
             },
-            totalTransactions: { $sum: 1 },
+            count: { $sum: 1 },
           },
         },
         {
@@ -409,17 +409,17 @@ router.get('/merchant/revenue', verifyToken, async (req, res) => {
             _id: 0,
             merchant: '$_id.merchant',
             affiliate: '$_id.affiliate',
-            totalTransactions: '$totalTransactions',
+            count: '$count',
           },
         },
       ]);
 
       await set(
         `${affiliateMerchantRevenueRedis}${foundMerchant._id}`,
-        JSON.stringify({ data, totalSales })
+        JSON.stringify({ revenue, sales })
       );
 
-      return sendSuccess(res, 'success', 200, { data, totalSales });
+      return sendSuccess(res, 'success', 200, { revenue, sales });
     }
   } catch (error) {
     logger.error(`/POST /affiliate/merchant/revenue ERROR: ${error.message}`);

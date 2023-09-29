@@ -3,10 +3,10 @@ const logger = require('../log');
 const { promisify } = require('util');
 
 const client = createClient({
-  password: 'Xk99TWezkDCQgh45EfZrGjw1vgK8Jph7',
+  password: process.env.REDIS_PASSWORD,
   socket: {
-    host: 'redis-14266.c295.ap-southeast-1-1.ec2.cloud.redislabs.com',
-    port: 14266,
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
   },
 });
 

@@ -34,10 +34,19 @@ router.get('/', verifyToken, async (req, res) => {
         },
         {
           $group: {
-            _id: 0,
+            _id: {
+              merchant: foundMerchant._id,
+            },
             totalAmount: {
               $sum: { $toDouble: '$afterFee' },
             },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            merchant: '$_id.merchant',
+            totalAmount: '$totalAmount',
           },
         },
       ]).exec();
@@ -165,14 +174,14 @@ router.get('/', verifyToken, async (req, res) => {
             _id: {
               merchant: '$merchant',
             },
-            transactionCount: { $sum: 1 },
+            count: { $sum: 1 },
           },
         },
         {
           $project: {
             _id: 0,
             merchant: '$_id.merchant',
-            transactionCount: '$transactionCount',
+            count: '$count',
           },
         },
       ]).exec();
@@ -195,14 +204,14 @@ router.get('/', verifyToken, async (req, res) => {
         {
           $group: {
             _id: '$_id.merchant',
-            uniqueCustomersCount: { $sum: 1 },
+            count: { $sum: 1 },
           },
         },
         {
           $project: {
             _id: 0,
             merchant: '$_id',
-            uniqueCustomersCount: '$uniqueCustomersCount',
+            count: '$count',
           },
         },
       ]).exec();
@@ -243,10 +252,10 @@ router.get('/', verifyToken, async (req, res) => {
             updatedAt: {
               $dateToString: {
                 date: '$updatedAt',
-                format: '%Y-%m-%d %H:%M:%S', // Format the date as 'yyyy-MM-dd HH:mm:ss'
-                timezone: 'Asia/Shanghai', // Replace with your desired timezone
+                format: '%Y-%m-%d %H:%M:%S',
+                timezone: 'Asia/Shanghai',
               },
-            }, // Use updatedAt instead of updated_at
+            },
             'customerInfo.email': 1,
             'merchantInfo.storeName': 1,
           },
@@ -259,9 +268,9 @@ router.get('/', verifyToken, async (req, res) => {
             _id: '$merchantInfo.storeName',
             transactions: {
               $push: {
-                afterFee: '$afterFee',
+                totalAmount: '$afterFee',
                 updatedAt: '$updatedAt',
-                customer_email: '$customerInfo.email',
+                customerEmail: '$customerInfo.email',
               },
             },
           },

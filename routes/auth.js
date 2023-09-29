@@ -258,8 +258,7 @@ router.get('/password-reset/:uid', checkBasicAuth, async (req, res) => {
 
 router.post('/password-reset/:uid', checkBasicAuth, async (req, res) => {
   try {
-    const { uid } = req.params;
-    const { newPassword } = req.body;
+    const { newPassword, uid } = req.body;
     logger.info(`/POST /auth/password-reset/:uid START: ${uid}`);
 
     const foundForgetPassword = await ForgetPassword.findOne({ uid: uid });
