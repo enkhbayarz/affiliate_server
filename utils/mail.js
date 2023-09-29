@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const logger = require('../log');
+const { sign } = require('jsonwebtoken');
 
 function createTransporter() {
   return nodemailer.createTransport({
@@ -27,10 +28,15 @@ async function sendMail({ email, subject, text, html }) {
   try {
     const emailList = process.env.EMAIL_LIST_CHECK;
 
-    if (emailList.includes(email)) {
-      logger.info(`send mail START: ${JSON.stringify(message)}`);
+    if (process.env.NODE_ENV === 'PROD') {
       await transporter.sendMail(message);
+    } else {
+      if (emailList.includes(email)) {
+        logger.info(`send mail START: ${JSON.stringify(message)}`);
+        await transporter.sendMail(message);
+      }
     }
+
     return 'success';
   } catch (e) {
     logger.error(`send mail ERROR: ${e.message}`);
@@ -39,6 +45,7 @@ async function sendMail({ email, subject, text, html }) {
 }
 
 async function sendMailOtp(email, otp) {
+  logger.info(`/SEND mailOtp START: ${email} ${otp}`);
   return sendMail({
     email,
     subject: 'Social Club',
@@ -47,6 +54,7 @@ async function sendMailOtp(email, otp) {
 }
 
 async function sendMailAffiliate(email, affiliate) {
+  logger.info(`/SEND MailAffiliate START: ${email} ${affiliate}`);
   return sendMail({
     email,
     subject: 'Social Club',
@@ -55,6 +63,9 @@ async function sendMailAffiliate(email, affiliate) {
 }
 
 async function sendMailAffiliateAndSignup(email, affiliate, signup) {
+  logger.info(
+    `/SEND MailAffiliateAndSignup START: ${email} ${affiliate} ${signup}`
+  );
   return sendMail({
     email,
     subject: 'Social Club',
@@ -63,6 +74,7 @@ async function sendMailAffiliateAndSignup(email, affiliate, signup) {
 }
 
 async function sendMailForgetPassword(email, forgetPassword) {
+  logger.info(`/SEND MailForgetPassword START: ${email} ${forgetPassword}`);
   return sendMail({
     email,
     subject: 'Social Club',

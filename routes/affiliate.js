@@ -212,10 +212,8 @@ router.get('/own/revenue', verifyToken, async (req, res) => {
     );
 
     if (val) {
-      console.log('val valid');
       return sendSuccess(res, 'success', 200, JSON.parse(val));
     } else {
-      console.log('val not valid');
       const affiliates = await Affiliate.find({
         affiliateCustomer: affiliateCustomer,
       });
@@ -357,10 +355,8 @@ router.get('/merchant/revenue', verifyToken, async (req, res) => {
     );
 
     if (val) {
-      console.log('val valid');
       return sendSuccess(res, 'success', 200, JSON.parse(val));
     } else {
-      console.log('val not valid');
       const affiliates = await Affiliate.find({ merchant: foundMerchant });
 
       const affiliateIds = affiliates.map((affiliate) => affiliate._id);

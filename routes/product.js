@@ -24,7 +24,6 @@ const { productRevenueMembersRedis } = require('../utils/const');
 const cacheMiddleware = (duration, url) => {
   return (req, res, next) => {
     const key = '__express__' + req.originalUrl || req.url;
-    console.log(key);
     const cachedBody = cache.get(key);
 
     if (cachedBody) {

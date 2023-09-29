@@ -26,7 +26,7 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-//TODO ???
+//TODO affiliate nemehed email eer n shalgaj ter hunii omno n afffilaite burtguulsen esehiin shalgana
 router.get('/check/email/:email', verifyToken, async (req, res) => {
   try {
     const { email } = req.params;

@@ -41,7 +41,9 @@ const generateTokens = (res, email, userId) => {
 router.get('/signup/token/:token/:email', checkBasicAuth, async (req, res) => {
   try {
     const { token, email } = req.params;
-    logger.info(`/POST /auth/signup/token/:token START: ${token}  ${email}`);
+    logger.info(
+      `/POST /auth/signup/token/:token/:email START: ${token}  ${email}`
+    );
 
     const foundSignup = await Signup.findOne({ token: token });
     if (!foundSignup) {
@@ -53,7 +55,9 @@ router.get('/signup/token/:token/:email', checkBasicAuth, async (req, res) => {
     }
     return sendSuccess(res, 'success', 200, 'true');
   } catch (error) {
-    logger.error(`/POST /auth/signup/token/:token ERROR: ${error.message}`);
+    logger.error(
+      `/POST /auth/signup/token/:token/:email ERROR: ${error.message}`
+    );
     sendError(res, error.message, 500);
   }
 });
@@ -80,7 +84,7 @@ router.post(
         return sendError(res, 'token not found', 404);
       }
 
-      if (!foundSignup.email === email) {
+      if (foundSignup.email !== email) {
         return sendError(res, 'email is not right', 400);
       }
 
@@ -94,7 +98,7 @@ router.post(
       const timeDifferenceInSeconds = timeDifference / 1000;
 
       if (timeDifferenceInSeconds > 60) {
-        return sendError(res, 'otp expired', 400);
+        return sendError(res, 'otp expired send again!', 400);
       } else {
         if (foundOtp.otpCode == otpCode) {
           const foundCustomer = await Customer.findOne({ email: email });
@@ -112,16 +116,7 @@ router.post(
               return generateTokens(res, email, foundCustomer._id);
             }
           } else {
-            const saltRounds = 10;
-            const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-            const customer = new Customer();
-            customer.email = email;
-            customer.password = hashedPassword;
-
-            await customer.save();
-
-            return generateTokens(res, email, customer._id);
+            return sendError(res, 'customer not match', 400);
           }
         } else {
           return sendError(res, 'otp not match', 400);
