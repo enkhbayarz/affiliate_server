@@ -161,32 +161,136 @@ router.get('/own', verifyToken, async (req, res) => {
       return sendSuccess(res, 'success', 200, []);
     }
 
-    const affiliates = await Affiliate.find({
-      affiliateCustomer: affiliateCustomer,
-    })
-      .populate('product')
-      .lean();
+    const val = await get(
+      `${affiliateOwnRevenueRedis}${affiliateCustomer._id}`
+    );
 
-    const extractedData = affiliates.map((affiliate) => {
-      if (
-        affiliate.commission &&
-        affiliate.commission instanceof mongoose.Types.Decimal128
-      ) {
-        affiliate.commission = parseFloat(affiliate.commission.toString());
-      }
+    if (val) {
+      return sendSuccess(res, 'success', 200, JSON.parse(val));
+    } else {
+      const affiliates = await Affiliate.find({
+        affiliateCustomer: affiliateCustomer,
+      })
+        .populate('product')
+        .lean();
 
-      return {
-        link: affiliate.link,
-        commission: affiliate.commission,
-        productTitle: affiliate.product.title,
-        productId: affiliate.product.uid,
-        status: affiliate.status,
-        uid: affiliate.uid,
-        id: affiliate._id,
+      const affiliateIds = affiliates.map((affiliate) => affiliate._id);
+
+      const revenue = await Transaction.aggregate([
+        {
+          $match: {
+            affiliate: { $in: affiliateIds },
+            affiliateCustomer: affiliateCustomer._id,
+            status: 'PAID',
+          },
+        },
+        {
+          $group: {
+            _id: {
+              affiliateCustomer: affiliateCustomer._id,
+              affiliate: '$affiliate',
+            },
+            value: { $sum: { $toDouble: '$affiliateFee' } },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            affiliateCustomer: '$_id.affiliateCustomer',
+            affiliate: '$_id.affiliate',
+            value: '$value',
+          },
+        },
+      ]);
+      const sales = await Transaction.aggregate([
+        {
+          $match: {
+            affiliate: { $in: affiliateIds },
+            affiliateCustomer: affiliateCustomer._id,
+            status: 'PAID',
+          },
+        },
+        {
+          $group: {
+            _id: {
+              affiliateCustomer: affiliateCustomer._id,
+              affiliate: '$affiliate',
+            },
+            value: { $sum: 1 },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            affiliateCustomer: '$_id.affiliateCustomer',
+            affiliate: '$_id.affiliate',
+            value: '$value',
+          },
+        },
+      ]);
+
+      const salesCountMap = new Map();
+      const revenueMap = new Map();
+
+      sales.forEach((sale) => {
+        salesCountMap.set(sale.affiliate.toString(), sale.value);
+      });
+
+      revenue.forEach((e) => {
+        revenueMap.set(e.affiliate.toString(), e.value);
+      });
+
+      const extractedData = affiliates.map((affiliate) => {
+        if (
+          affiliate.commission &&
+          affiliate.commission instanceof mongoose.Types.Decimal128
+        ) {
+          affiliate.commission = parseFloat(affiliate.commission.toString());
+        }
+
+        const affiliateId = affiliate._id.toString();
+        const salesCount = salesCountMap.get(affiliateId) || 0;
+        const reveuneAmount = revenueMap.get(affiliateId) || 0;
+
+        return {
+          link: affiliate.link,
+          commission: affiliate.commission,
+          productTitle: affiliate.product.title,
+          productId: affiliate.product.uid,
+          status: affiliate.status,
+          uid: affiliate.uid,
+          id: affiliate._id,
+          sales: salesCount,
+          reveune: reveuneAmount,
+        };
+      });
+      const totalSales = sales.reduce((acc, sale) => acc + sale.value, 0);
+      const totalRevenue = revenue.reduce((acc, e) => acc + e.value, 0);
+
+      const response = {
+        cards: {
+          revenue: [
+            {
+              title: 'Revenue',
+              value: totalRevenue,
+            },
+          ],
+          sales: [
+            {
+              title: 'Sales',
+              value: totalSales,
+            },
+          ],
+        },
+        affiliates: extractedData,
       };
-    });
+      await set(
+        `${affiliateOwnRevenueRedis}${affiliateCustomer._id}`,
+        JSON.stringify(response)
+      );
 
-    return sendSuccess(res, 'success', 200, { affiliates: extractedData });
+      return sendSuccess(res, 'success', 200, response);
+    }
   } catch (error) {
     logger.error(`/POST /affiliate/own ERROR: ${error.message}`);
     return sendError(res, error.message, 500);
