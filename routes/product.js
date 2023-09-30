@@ -181,20 +181,191 @@ router.get('/', verifyToken, async (req, res) => {
     if (!foundMerchant) {
       return sendSuccess(res, 'success', 200, []);
     }
-    const products = await Product.find({ merchant: foundMerchant })
-      .populate('thumbnail')
-      .populate('option')
-      .lean();
 
-    products.map((product) => {
-      product.option.map((option) => {
-        if (option.price && option.price instanceof mongoose.Types.Decimal128) {
-          option.price = parseFloat(option.price.toString());
-        }
+    const val = await get(`${productRevenueMembersRedis}${foundMerchant._id}`);
+
+    if (val) {
+      return sendSuccess(res, 'success', 200, JSON.parse(val));
+    } else {
+      const products = await Product.find({ merchant: foundMerchant })
+        .populate('thumbnail')
+        .populate('option')
+        .lean();
+
+      const productIds = products.map((p) => p._id);
+
+      const revenue = await Transaction.aggregate([
+        {
+          $match: {
+            product: { $in: productIds },
+            merchant: foundMerchant._id,
+            status: 'PAID',
+          },
+        },
+        {
+          $group: {
+            _id: {
+              merchant: '$merchant',
+              product: '$product',
+            },
+            value: { $sum: { $toDouble: '$afterFee' } },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            merchant: '$_id.merchant',
+            product: '$_id.product',
+            title: 'Revenue',
+            value: '$value',
+          },
+        },
+      ]);
+
+      const members = await Transaction.aggregate([
+        {
+          $match: {
+            product: { $in: productIds },
+            merchant: foundMerchant._id,
+            status: 'PAID',
+          },
+        },
+        {
+          $group: {
+            _id: {
+              merchant: '$merchant',
+              product: '$product',
+            },
+            uniqueCustomers: { $addToSet: '$customer' },
+          },
+        },
+        {
+          $unwind: '$uniqueCustomers',
+        },
+        {
+          $group: {
+            _id: {
+              merchant: '$_id.merchant',
+              product: '$_id.product',
+            },
+            totalMembers: { $sum: 1 },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            merchant: '$_id.merchant',
+            product: '$_id.product',
+            title: 'Members',
+            value: '$totalMembers',
+          },
+        },
+      ]);
+
+      const sales = await Transaction.aggregate([
+        {
+          $match: {
+            merchant: foundMerchant._id,
+            status: 'PAID',
+          },
+        },
+        {
+          $group: {
+            _id: {
+              merchant: '$merchant',
+              product: '$product',
+            },
+            transactionCount: { $sum: 1 },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            merchant: '$_id.merchant',
+            product: '$_id.product',
+            title: 'Sales',
+            value: '$transactionCount',
+          },
+        },
+      ]);
+
+      const salesCountMap = new Map();
+      const revenueMap = new Map();
+      const membersMap = new Map();
+
+      sales.forEach((sale) => {
+        salesCountMap.set(sale.product.toString(), sale.value);
       });
-    });
 
-    return sendSuccess(res, 'success', 200, { products });
+      revenue.forEach((e) => {
+        revenueMap.set(e.product.toString(), e.value);
+      });
+
+      members.forEach((e) => {
+        membersMap.set(e.product.toString(), e.value);
+      });
+
+      const extractedData = products.map((product) => {
+        product.option.map((option) => {
+          if (
+            option.price &&
+            option.price instanceof mongoose.Types.Decimal128
+          ) {
+            option.price = parseFloat(option.price.toString());
+          }
+        });
+        const productId = product._id.toString();
+        const salesCount = salesCountMap.get(productId) || 0;
+        const reveuneAmount = revenueMap.get(productId) || 0;
+        const membersCount = membersMap.get(productId) || 0;
+
+        return {
+          id: product._id,
+          uid: product.uid,
+          title: product.title,
+          thumbnail: product.thumbnail,
+          option: product.option,
+          sales: salesCount,
+          reveune: reveuneAmount,
+          members: membersCount,
+        };
+      });
+      const totalSales = sales.reduce((acc, sale) => acc + sale.value, 0);
+      const totalRevenue = revenue.reduce((acc, e) => acc + e.value, 0);
+      const totalMembers = members.reduce((acc, e) => acc + e.value, 0);
+
+      const response = {
+        cards: {
+          revenue: [
+            {
+              title: 'Revenue',
+              value: totalRevenue,
+            },
+          ],
+          sales: [
+            {
+              title: 'Sales',
+              value: totalSales,
+            },
+          ],
+          members: [
+            {
+              title: 'Members',
+              value: totalMembers,
+            },
+          ],
+        },
+        products: extractedData,
+      };
+
+      await set(
+        `${productRevenueMembersRedis}${foundMerchant._id}`,
+        JSON.stringify(response)
+      );
+      return sendSuccess(res, 'success', 200, response);
+    }
+
+    // return sendSuccess(res, 'success', 200, { products });
   } catch (error) {
     logger.error(`/GET /product ERROR: ${error.message}`);
     return sendError(res, error.message, 500);
