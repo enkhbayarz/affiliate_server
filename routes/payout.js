@@ -37,7 +37,7 @@ router.get('/', verifyToken, async (req, res) => {
             _id: {
               merchant: foundMerchant._id,
             },
-            totalAmount: {
+            value: {
               $sum: { $toDouble: '$afterFee' },
             },
           },
@@ -46,7 +46,8 @@ router.get('/', verifyToken, async (req, res) => {
           $project: {
             _id: 0,
             merchant: '$_id.merchant',
-            totalAmount: '$totalAmount',
+            title: 'Revenue',
+            value: '$value',
           },
         },
       ]).exec();
@@ -174,14 +175,15 @@ router.get('/', verifyToken, async (req, res) => {
             _id: {
               merchant: '$merchant',
             },
-            count: { $sum: 1 },
+            value: { $sum: 1 },
           },
         },
         {
           $project: {
             _id: 0,
             merchant: '$_id.merchant',
-            count: '$count',
+            title: 'Sales',
+            value: '$value',
           },
         },
       ]).exec();
@@ -204,14 +206,15 @@ router.get('/', verifyToken, async (req, res) => {
         {
           $group: {
             _id: '$_id.merchant',
-            count: { $sum: 1 },
+            value: { $sum: 1 },
           },
         },
         {
           $project: {
             _id: 0,
             merchant: '$_id',
-            count: '$count',
+            title: 'Sales',
+            value: '$value',
           },
         },
       ]).exec();
@@ -286,22 +289,30 @@ router.get('/', verifyToken, async (req, res) => {
       await set(
         `${payoutMerchantRedis}${foundMerchant._id}`,
         JSON.stringify({
-          revenue,
-          revenueByDay,
-          revenueByWeek,
-          revenueByMonth,
-          sales,
-          members,
+          cards: {
+            revenue,
+            sales,
+            members,
+          },
+          overview: {
+            revenueByDay,
+            revenueByWeek,
+            revenueByMonth,
+          },
           tranList,
         })
       );
       return sendSuccess(res, 'success', 200, {
-        revenue,
-        revenueByDay,
-        revenueByWeek,
-        revenueByMonth,
-        sales,
-        members,
+        cards: {
+          revenue,
+          sales,
+          members,
+        },
+        overview: {
+          revenueByDay,
+          revenueByWeek,
+          revenueByMonth,
+        },
         tranList,
       });
     }
