@@ -545,6 +545,7 @@ router.get(
         .populate('coverImage')
         .populate('thumbnail')
         .populate('term')
+        .populate('merchant')
         .lean()
         .exec();
 
@@ -560,7 +561,6 @@ router.get(
       });
 
       return sendSuccess(res, 'success', 200, {
-        merchant: foundMerchant,
         product: products,
       });
     } catch (error) {
