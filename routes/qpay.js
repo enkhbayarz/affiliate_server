@@ -449,9 +449,7 @@ router.get('/call-back/affiliate/:id', fetchQpayToken, async (req, res) => {
       await del(
         `${affiliateOwnRevenueRedis}${affiliate.affiliateCustomer._id}`
       );
-      await del(
-        `${affiliateMerchantRevenueRedis}${affiliate.affiliateCustomer._id}`
-      );
+      await del(`${affiliateMerchantRevenueRedis}${affiliate.merchant._id}`);
       await del(`${payoutMerchantRedis}${transaction.merchant._id}`);
       await del(`${productRevenueMembersRedis}${transaction.merchant._id}`);
 

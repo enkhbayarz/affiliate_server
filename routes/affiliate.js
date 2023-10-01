@@ -139,6 +139,8 @@ router.post('/', verifyToken, async (req, res) => {
         signupLink
       );
     }
+    await del(`${affiliateOwnRevenueRedis}${affiliateCustomer._id}`);
+    await del(`${affiliateMerchantRevenueRedis}${merchant._id}`);
 
     return sendSuccess(res, 'success', 200, 'true');
   } catch (error) {

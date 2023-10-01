@@ -145,6 +145,8 @@ router.post('/', verifyToken, async (req, res) => {
     const key = `__express__/product/store/${merchant._id}`;
     cache.del(key);
 
+    await del(`${productRevenueMembersRedis}${merchant._id}`);
+
     return sendSuccess(res, 'success', 200, { product });
   } catch (error) {
     logger.error(`/POST /product ERROR: ${error.message}`);
