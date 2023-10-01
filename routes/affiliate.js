@@ -21,7 +21,7 @@ const {
   sendMailAffiliate,
   sendMailAffiliateAndSignup,
 } = require('../utils/mail');
-const { set, get } = require('../redis');
+const { set, get, del } = require('../redis');
 const {
   affiliateOwnRevenueRedis,
   affiliateMerchantRevenueRedis,

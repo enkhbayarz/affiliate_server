@@ -18,7 +18,7 @@ const { verifyToken, checkBasicAuth } = require('../middleware/token');
 const { sendSuccess, sendError } = require('../utils/response');
 const logger = require('../log');
 const cache = require('memory-cache');
-const { set, get } = require('../redis');
+const { set, get, del } = require('../redis');
 const { productRevenueMembersRedis } = require('../utils/const');
 
 const cacheMiddleware = (duration, url) => {
@@ -142,8 +142,8 @@ router.post('/', verifyToken, async (req, res) => {
     await newTerm.save();
     await Product.create(product);
 
-    const key = `__express__/product/store/${merchant._id}`;
-    cache.del(key);
+    // const key = `__express__/product/store/${merchant._id}`;
+    // cache.del(key);
 
     await del(`${productRevenueMembersRedis}${merchant._id}`);
 
