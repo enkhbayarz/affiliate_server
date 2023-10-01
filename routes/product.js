@@ -527,7 +527,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 //Get Products by merchant
 router.get(
   '/store/:id',
-  cacheMiddleware(3600),
+  // cacheMiddleware(3600),
   checkBasicAuth,
   async (req, res) => {
     try {

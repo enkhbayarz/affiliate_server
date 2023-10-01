@@ -24,11 +24,16 @@ const generateTokens = (res, email, userId) => {
     expiresIn: '30d',
   });
 
+  const GMT8OffsetInMilliseconds = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+
   const currentTimestamp = new Date().getTime();
 
-  const expires_in = currentTimestamp + 24 * 60 * 60 * 1000;
+  const currentTimestampGMT8 = currentTimestamp + GMT8OffsetInMilliseconds;
 
-  const refresh_expires_in = currentTimestamp + 30 * 24 * 60 * 60 * 1000;
+  const expires_in = currentTimestampGMT8 + 24 * 60 * 60 * 1000;
+
+  // const refresh_expires_in = currentTimestampGMT8 + 30 * 24 * 60 * 60 * 1000;
+  const refresh_expires_in = currentTimestampGMT8 + 1 * 60 * 1000;
 
   return sendSuccess(res, 'success', 200, {
     accessToken,
