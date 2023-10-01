@@ -32,7 +32,11 @@ router.post('/send', checkBasicAuth, async (req, res) => {
 
     sendMailOtp(email, otpCode);
 
-    sendSuccess(res, 'success', 200, { foundOtp });
+    const currentTimestamp = new Date().getTime();
+
+    const expires_in = currentTimestamp + 2 * 60 * 1000;
+
+    sendSuccess(res, 'success', 200, { expires_in });
   } catch (error) {
     logger.error(`/POST /otp/send ERROR: ${error.message}`);
     sendError(res, error.message, 500);
