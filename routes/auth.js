@@ -178,15 +178,21 @@ router.post('/refresh-token', verifyToken, async (req, res) => {
 
     const foundCustomer = req.customer;
 
-    const newAccessToken = jwt.sign(
+    const accessToken = jwt.sign(
       { email: foundCustomer.email, id: foundCustomer._id },
       secretKey,
       {
         expiresIn: '24h',
       }
     );
+    const currentTimestamp = new Date().getTime();
 
-    sendSuccess(res, 'success', 200, { accessToken: newAccessToken });
+    const expires_in = currentTimestamp + 24 * 60 * 60 * 1000;
+
+    return sendSuccess(res, 'success', 200, {
+      accessToken,
+      expires_in,
+    });
   } catch (error) {
     logger.error(`/POST /refresh-token ERROR: ${error.message}`);
     sendError(res, 'Invalid refresh token', 401);

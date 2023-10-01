@@ -162,8 +162,13 @@ router.post(
       });
       await transaction.save();
 
+      const currentTimestamp = new Date().getTime();
+
+      const expires_in = currentTimestamp + 5 * 60 * 1000;
+
       return sendSuccess(res, 'success', 200, {
         transaction: { id: transaction._id, uid: v4Uuid },
+        expires_in,
         qpay: response.data,
       });
     } catch (error) {
@@ -298,8 +303,13 @@ router.post(
       });
       await transaction.save();
 
+      const currentTimestamp = new Date().getTime();
+
+      const expires_in = currentTimestamp + 5 * 60 * 1000;
+
       return sendSuccess(res, 'success', 200, {
         transaction: { id: transaction._id, uid: v4Uuid },
+        expires_in,
         qpay: response.data,
       });
     } catch (error) {
