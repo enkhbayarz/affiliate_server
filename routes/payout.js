@@ -18,7 +18,7 @@ router.get('/', verifyToken, async (req, res) => {
 
     const foundMerchant = await Merchant.findOne({ customer: foundCustomer });
     if (!foundMerchant) {
-      return sendSuccess(res, 'success', 200, {});
+      return sendSuccess(res, 'success', 200, null);
     }
     const val = await get(`${payoutMerchantRedis}${foundMerchant._id}`);
 
