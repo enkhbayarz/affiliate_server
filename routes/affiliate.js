@@ -707,6 +707,8 @@ router.get('/list/uid/:uid', checkBasicAuth, async (req, res) => {
       affiliateCustomer: foundAffiliate.affiliateCustomer,
     });
 
+    console.log(listAffiliate);
+
     const list = listAffiliate.map((aff) => ({
       uid: aff.uid,
       productId: (aff.product && aff.product._id) || null,

@@ -482,7 +482,7 @@ router.get('/qpay/check/transaction/:id', checkBasicAuth, async (req, res) => {
     const currentTime = new Date();
     const timeDifference = currentTime - foundTransaction.createdAt;
     const timeDifferenceInSeconds = timeDifference / 1000;
-    if (timeDifferenceInSeconds > 60) {
+    if (timeDifferenceInSeconds > 300) {
       return sendError(res, 'qpay expired', 400);
     } else {
       if (foundTransaction.status === 'PAID') {
