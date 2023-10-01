@@ -30,7 +30,8 @@ const generateTokens = (res, email, userId) => {
 
   const currentTimestampGMT8 = currentTimestamp + GMT8OffsetInMilliseconds;
 
-  const expires_in = currentTimestampGMT8 + 24 * 60 * 60 * 1000;
+  // const expires_in = currentTimestampGMT8 + 24 * 60 * 60 * 1000;
+  const expires_in = currentTimestampGMT8 + 1 * 60 * 1000;
 
   // const refresh_expires_in = currentTimestampGMT8 + 30 * 24 * 60 * 60 * 1000;
   const refresh_expires_in = currentTimestampGMT8 + 1 * 60 * 1000;
