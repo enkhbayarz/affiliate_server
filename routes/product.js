@@ -561,6 +561,7 @@ router.get(
       });
 
       return sendSuccess(res, 'success', 200, {
+        merchant: foundMerchant,
         product: products,
       });
     } catch (error) {
