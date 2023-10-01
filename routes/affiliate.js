@@ -667,6 +667,10 @@ router.get('/uid/:uid', checkBasicAuth, async (req, res) => {
             path: 'option',
             model: 'Option',
           },
+          {
+            path: 'merchant',
+            model: 'Merchant',
+          },
         ],
       })
       .lean();
