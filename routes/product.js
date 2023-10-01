@@ -582,6 +582,7 @@ router.get('/store/uid/:uid', checkBasicAuth, async (req, res) => {
       .populate('coverImage')
       .populate('thumbnail')
       .populate('term')
+      .populate('merchant')
       .lean()
       .exec();
 
@@ -626,6 +627,10 @@ router.get('/affiliate/uid/:uid', checkBasicAuth, async (req, res) => {
           {
             path: 'option',
             model: 'Option',
+          },
+          {
+            path: 'merchant',
+            model: 'Merchant',
           },
         ],
       })
