@@ -27,11 +27,18 @@ const {
 //Create Qpay Invoice with affiliate
 router.post(
   '/create-invoice/affiliate',
+  [body('email').isEmail().withMessage('Invalid email format')],
   checkBasicAuth,
   fetchQpayToken,
   async (req, res) => {
     try {
       const { affiliateId, email, optionId } = req.body;
+
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const errorMessages = errors.array().map((error) => error.msg);
+        return sendError(res, errorMessages.toString(), 404);
+      }
 
       logger.info(
         `/POST /create-invoice/affiliate START: ${affiliateId} ${email}`
@@ -181,11 +188,18 @@ router.post(
 //Create Qpay Invoice
 router.post(
   '/create-invoice',
+  [body('email').isEmail().withMessage('Invalid email format')],
   checkBasicAuth,
   fetchQpayToken,
   async (req, res) => {
     try {
       const { productId, email, optionId } = req.body;
+
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const errorMessages = errors.array().map((error) => error.msg);
+        return sendError(res, errorMessages.toString(), 404);
+      }
 
       logger.info(`/POST /create-invoice START: ${productId} ${email}`);
 

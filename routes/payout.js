@@ -281,7 +281,7 @@ router.get('/', verifyToken, async (req, res) => {
         {
           $project: {
             _id: 1,
-            transactions: { $slice: ['$transactions', 10] },
+            transactions: { $slice: ['$transactions', 5] },
           },
         },
       ]).exec();
