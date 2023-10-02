@@ -351,12 +351,14 @@ router.get('/', verifyToken, async (req, res) => {
           revenue: [
             {
               title: 'Revenue',
+              type: 'amount',
               value: totalRevenue,
             },
           ],
           sales: [
             {
               title: 'Sales',
+              type: 'count',
               value: totalSales,
             },
           ],

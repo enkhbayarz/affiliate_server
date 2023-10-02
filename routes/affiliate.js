@@ -274,12 +274,14 @@ router.get('/own', verifyToken, async (req, res) => {
           revenue: [
             {
               title: 'Revenue',
+              type: 'amount',
               value: totalRevenue,
             },
           ],
           sales: [
             {
               title: 'Sales',
+              type: 'count',
               value: totalSales,
             },
           ],
@@ -563,18 +565,21 @@ router.get('/merchant', verifyToken, async (req, res) => {
           revenue: [
             {
               title: 'Revenue',
+              type: 'amount',
               value: totalRevenue,
             },
           ],
           sales: [
             {
               title: 'Sales',
+              type: 'count',
               value: totalSales,
             },
           ],
           affiliateRevenue: [
             {
               title: 'Affiliates Revenue',
+              type: 'amount',
               value: totalAffiliateRevenue,
             },
           ],
