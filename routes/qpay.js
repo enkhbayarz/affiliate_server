@@ -15,7 +15,7 @@ const {
 const { fetchQpayToken, checkBasicAuth } = require('../middleware/token');
 const { sendSuccess, sendError } = require('../utils/response');
 const logger = require('../log');
-const { setCustomerCount, get, set, del } = require('../redis');
+const { setCustomerCount, get, set, del, exists } = require('../redis');
 const {
   payoutMerchantRedis,
   productLimitCustomerCountRedis,
@@ -371,8 +371,19 @@ router.get('/call-back/simple/:id', fetchQpayToken, async (req, res) => {
         `${productLimitCustomerCountRedis}${foundProduct._id}`
       );
 
-      await del(`${payoutMerchantRedis}${transaction.merchant._id}`);
-      await del(`${productRevenueMembersRedis}${transaction.merchant._id}`);
+      const payoutMerchantExists = await exists(
+        `${payoutMerchantRedis}${transaction.merchant._id}`
+      );
+      if (payoutMerchantExists) {
+        await del(`${payoutMerchantRedis}${transaction.merchant._id}`);
+      }
+
+      const productRevenueMembersExists = await exists(
+        `${productRevenueMembersRedis}${transaction.merchant._id}`
+      );
+      if (productRevenueMembersExists) {
+        await del(`${productRevenueMembersRedis}${transaction.merchant._id}`);
+      }
 
       transaction.status = 'PAID';
 
@@ -446,12 +457,35 @@ router.get('/call-back/affiliate/:id', fetchQpayToken, async (req, res) => {
         `${productLimitCustomerCountRedis}${foundProduct._id}`
       );
 
-      await del(
+      const affiliateOwnRevenueExists = await exists(
         `${affiliateOwnRevenueRedis}${affiliate.affiliateCustomer._id}`
       );
-      await del(`${affiliateMerchantRevenueRedis}${affiliate.merchant._id}`);
-      await del(`${payoutMerchantRedis}${transaction.merchant._id}`);
-      await del(`${productRevenueMembersRedis}${transaction.merchant._id}`);
+      if (affiliateOwnRevenueExists) {
+        await del(
+          `${affiliateOwnRevenueRedis}${affiliate.affiliateCustomer._id}`
+        );
+      }
+
+      const affiliateMerchantRevenueExists = await exists(
+        `${affiliateMerchantRevenueRedis}${affiliate.merchant._id}`
+      );
+      if (affiliateMerchantRevenueExists) {
+        await del(`${affiliateMerchantRevenueRedis}${affiliate.merchant._id}`);
+      }
+
+      const payoutMerchantExists = await exists(
+        `${payoutMerchantRedis}${transaction.merchant._id}`
+      );
+      if (payoutMerchantExists) {
+        await del(`${payoutMerchantRedis}${transaction.merchant._id}`);
+      }
+
+      const productRevenueMembersExists = exists(
+        `${productRevenueMembersRedis}${transaction.merchant._id}`
+      );
+      if (productRevenueMembersExists) {
+        await del(`${productRevenueMembersRedis}${transaction.merchant._id}`);
+      }
 
       transaction.status = 'PAID';
 

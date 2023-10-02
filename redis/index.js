@@ -26,6 +26,20 @@ async function get(key) {
   }
 }
 
+async function exists(key) {
+  try {
+    await client.connect();
+
+    const val = await client.exists(key);
+
+    await client.disconnect();
+
+    return val;
+  } catch (error) {
+    logger.error(`redis exists ERROR: ${error.message}`);
+  }
+}
+
 async function set(key, value) {
   try {
     await client.connect();
@@ -64,4 +78,4 @@ async function setCustomerCount(key) {
   }
 }
 
-module.exports = { get, set, del, setCustomerCount };
+module.exports = { get, set, del, setCustomerCount, exists };
