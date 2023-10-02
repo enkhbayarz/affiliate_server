@@ -427,7 +427,6 @@ router.get('/revenue-members', verifyToken, async (req, res) => {
       const members = await Transaction.aggregate([
         {
           $match: {
-            product: { $in: productIds },
             merchant: foundMerchant._id,
             status: 'PAID',
           },

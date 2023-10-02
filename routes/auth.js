@@ -263,7 +263,7 @@ router.post('/forgot-password', checkBasicAuth, async (req, res) => {
       foundForgetPassword.uid = uid;
       await foundForgetPassword.save();
 
-      const link = `${process.env.WEB_BASE_URL}/api/auth/forget-password/${uid}`;
+      const link = `${process.env.WEB_BASE_URL}/auth/reset-password?token=${uid}`;
 
       sendMailForgetPassword(email, link);
 
@@ -275,7 +275,7 @@ router.post('/forgot-password', checkBasicAuth, async (req, res) => {
 
       await forgetPassword.save();
 
-      const link = `${process.env.WEB_BASE_URL}/api/auth/forget-password/${uid}`;
+      const link = `${process.env.WEB_BASE_URL}/auth/reset-password?token=${uid}`;
 
       sendMailForgetPassword(email, link);
       return sendSuccess(res, 'success', 200, link);

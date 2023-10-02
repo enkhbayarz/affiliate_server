@@ -100,7 +100,7 @@ router.post('/', verifyToken, async (req, res) => {
       const foundProduct = await Product.findById(productId);
 
       const v4Uuid = uuid.v4();
-      const link = `${process.env.WEB_BASE_URL}/affiliate/${v4Uuid}`;
+      const link = `${process.env.WEB_BASE_URL}/store/${merchant._id}/affiliate/${v4Uuid}`;
 
       const affiliate = new Affiliate({
         uid: v4Uuid,
@@ -124,7 +124,7 @@ router.post('/', verifyToken, async (req, res) => {
       );
     } else {
       const token = uuid.v4();
-      const signupLink = `${process.env.WEB_BASE_URL}/api/auth/signup/${token}`;
+      const signupLink = `${process.env.WEB_BASE_URL}/auth/register?token=${token}`;
 
       const signup = new Signup({
         email: email,
