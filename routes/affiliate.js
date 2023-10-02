@@ -452,6 +452,35 @@ router.get('/merchant', verifyToken, async (req, res) => {
           },
         },
       ]);
+      const affiliateRevenue = await Transaction.aggregate([
+        {
+          $match: {
+            affiliate: { $in: affiliateIds },
+            merchant: foundMerchant._id,
+            status: 'PAID',
+          },
+        },
+        {
+          $group: {
+            _id: {
+              merchant: foundMerchant._id,
+              affiliate: '$affiliate',
+            },
+            totalAmount: { $sum: { $toDouble: '$affiliateFee' } },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            merchant: '$_id.merchant',
+            affiliate: '$_id.affiliate',
+            totalAmount: '$totalAmount',
+          },
+        },
+      ]);
+
+      console.log(`affiliateRevenue: ${affiliateRevenue}`);
+
       const sales = await Transaction.aggregate([
         {
           $match: {
@@ -480,6 +509,7 @@ router.get('/merchant', verifyToken, async (req, res) => {
       ]);
       const salesCountMap = new Map();
       const revenueMap = new Map();
+      const affiliateRevenueMap = new Map();
 
       sales.forEach((sale) => {
         salesCountMap.set(sale.affiliate.toString(), sale.count);
@@ -487,6 +517,10 @@ router.get('/merchant', verifyToken, async (req, res) => {
 
       revenue.forEach((e) => {
         revenueMap.set(e.affiliate.toString(), e.totalAmount);
+      });
+
+      affiliateRevenue.forEach((e) => {
+        affiliateRevenueMap.set(e.affiliate.toString(), e.totalAmount);
       });
 
       const extractedData = affiliates.map((affiliate) => {
@@ -500,6 +534,8 @@ router.get('/merchant', verifyToken, async (req, res) => {
         const affiliateId = affiliate._id.toString();
         const salesCount = salesCountMap.get(affiliateId) || 0;
         const reveuneAmount = revenueMap.get(affiliateId) || 0;
+        const affiliateRevenueAmount =
+          affiliateRevenueMap.get(affiliateId) || 0;
 
         return {
           email: affiliate.affiliateCustomer.customer.email,
@@ -512,10 +548,15 @@ router.get('/merchant', verifyToken, async (req, res) => {
           id: affiliate._id,
           sales: salesCount,
           reveune: reveuneAmount,
+          affiliateRevenue: affiliateRevenueAmount,
         };
       });
       const totalSales = sales.reduce((acc, sale) => acc + sale.count, 0);
       const totalRevenue = revenue.reduce((acc, e) => acc + e.totalAmount, 0);
+      const totalAffiliateRevenue = affiliateRevenue.reduce(
+        (acc, e) => acc + e.totalAmount,
+        0
+      );
 
       const response = {
         cards: {
@@ -529,6 +570,12 @@ router.get('/merchant', verifyToken, async (req, res) => {
             {
               title: 'Sales',
               value: totalSales,
+            },
+          ],
+          affiliateRevenue: [
+            {
+              title: 'Affiliates Revenue',
+              value: totalAffiliateRevenue,
             },
           ],
         },
