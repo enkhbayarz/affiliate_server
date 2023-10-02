@@ -360,12 +360,6 @@ router.get('/', verifyToken, async (req, res) => {
               value: totalSales,
             },
           ],
-          members: [
-            {
-              title: 'Members',
-              value: totalMembers,
-            },
-          ],
         },
         products: extractedData,
       };
