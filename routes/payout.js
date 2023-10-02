@@ -213,7 +213,7 @@ router.get('/', verifyToken, async (req, res) => {
           $project: {
             _id: 0,
             merchant: '$_id',
-            title: 'Sales',
+            title: 'Members',
             value: '$value',
           },
         },

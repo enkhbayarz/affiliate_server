@@ -5,6 +5,7 @@ const transactionSchema = mongoose.Schema(
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Customer',
+      select: '-password',
     },
     product: {
       type: mongoose.Schema.Types.ObjectId,

@@ -6,6 +6,7 @@ const merchantSchema = mongoose.Schema(
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Customer',
+      select: '-password',
     },
   },
   {

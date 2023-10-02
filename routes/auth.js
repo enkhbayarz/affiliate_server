@@ -67,6 +67,47 @@ router.get('/signup/token/:token/:email', checkBasicAuth, async (req, res) => {
     sendError(res, error.message, 500);
   }
 });
+
+router.post(
+  '/signup/admin',
+  [body('email').isEmail().withMessage('Invalid email format')],
+  checkBasicAuth,
+  async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const errorMessages = errors.array().map((error) => error.msg);
+        return sendError(res, errorMessages.toString(), 404);
+      }
+
+      logger.info(`/POST /auth/signup/admin START: ${email}`);
+
+      let foundCustomer = await Customer.findOne({ email: email });
+
+      if (!foundCustomer) {
+        foundCustomer = new Customer();
+        foundCustomer.email = email;
+
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+        foundCustomer.password = hashedPassword;
+
+        await foundCustomer.save();
+
+        return generateTokens(res, email, foundCustomer._id);
+      } else {
+        return generateTokens(res, email, foundCustomer._id);
+      }
+    } catch (error) {
+      logger.error(`/POST /auth/signup/admin ERROR: ${error.message}`);
+      sendError(res, error.message, 500);
+    }
+  }
+);
+
 router.post(
   '/signup',
   [body('email').isEmail().withMessage('Invalid email format')],
