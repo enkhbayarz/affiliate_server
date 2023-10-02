@@ -71,83 +71,89 @@ router.post('/', verifyToken, async (req, res) => {
 
     const foundCustomer = req.customer;
 
-    const v4Uuid = uuid.v4();
+    const emailList = process.env.EMAIL_LIST_CHECK;
 
-    let merchant = await Merchant.findOne({ customer: foundCustomer });
+    if (emailList.includes(foundCustomer.email)) {
+      const v4Uuid = uuid.v4();
 
-    if (!merchant) {
-      merchant = new Merchant({
-        customer: foundCustomer,
-        storeName: storeName,
+      let merchant = await Merchant.findOne({ customer: foundCustomer });
+
+      if (!merchant) {
+        merchant = new Merchant({
+          customer: foundCustomer,
+          storeName: storeName,
+        });
+        await merchant.save();
+      }
+
+      const additionalInformationArray = [];
+
+      for (const info of additionalInformation) {
+        const { attribute, value } = info;
+
+        const additionalInfo = new AdditionalInformation({
+          attribute,
+          value,
+        });
+
+        await additionalInfo.save();
+
+        additionalInformationArray.push(additionalInfo._id);
+      }
+
+      const optionArray = [];
+      for (const o of options) {
+        const { price, duration, type } = o;
+
+        const opt = new Option({
+          price,
+          duration,
+          type,
+        });
+
+        await opt.save();
+
+        optionArray.push(opt);
+      }
+
+      const foundCoverImage = await Image.findById(coverImageId);
+      if (!foundCoverImage) {
+        return sendError(res, 'cover image not found', 404);
+      }
+      const foundThumbnail = await Image.findById(thumbnailId);
+      if (!foundThumbnail) {
+        return sendError(res, 'thumbnail not found', 404);
+      }
+
+      const newTerm = new Term();
+      newTerm.title = term.title;
+      newTerm.description = term.description;
+
+      const product = new Product({
+        title,
+        description,
+        coverImage: foundCoverImage,
+        thumbnail: foundThumbnail,
+        uid: v4Uuid,
+        summary,
+        merchant,
+        additionalInformation: additionalInformationArray,
+        option: optionArray,
+        term: newTerm,
       });
-      await merchant.save();
+
+      await newTerm.save();
+      await Product.create(product);
+
+      // const key = `__express__/product/store/${merchant._id}`;
+      // cache.del(key);
+
+      await del(`${productRevenueMembersRedis}${merchant._id}`);
+
+      return sendSuccess(res, 'success', 200, { product });
+    } else {
+      return sendError(res, 'can not add product', 400);
     }
-
-    const additionalInformationArray = [];
-
-    for (const info of additionalInformation) {
-      const { attribute, value } = info;
-
-      const additionalInfo = new AdditionalInformation({
-        attribute,
-        value,
-      });
-
-      await additionalInfo.save();
-
-      additionalInformationArray.push(additionalInfo._id);
-    }
-
-    const optionArray = [];
-    for (const o of options) {
-      const { price, duration, type } = o;
-
-      const opt = new Option({
-        price,
-        duration,
-        type,
-      });
-
-      await opt.save();
-
-      optionArray.push(opt);
-    }
-
-    const foundCoverImage = await Image.findById(coverImageId);
-    if (!foundCoverImage) {
-      return sendError(res, 'cover image not found', 404);
-    }
-    const foundThumbnail = await Image.findById(thumbnailId);
-    if (!foundThumbnail) {
-      return sendError(res, 'thumbnail not found', 404);
-    }
-
-    const newTerm = new Term();
-    newTerm.title = term.title;
-    newTerm.description = term.description;
-
-    const product = new Product({
-      title,
-      description,
-      coverImage: foundCoverImage,
-      thumbnail: foundThumbnail,
-      uid: v4Uuid,
-      summary,
-      merchant,
-      additionalInformation: additionalInformationArray,
-      option: optionArray,
-      term: newTerm,
-    });
-
-    await newTerm.save();
-    await Product.create(product);
-
-    // const key = `__express__/product/store/${merchant._id}`;
-    // cache.del(key);
-
-    await del(`${productRevenueMembersRedis}${merchant._id}`);
-
-    return sendSuccess(res, 'success', 200, { product });
   } catch (error) {
     logger.error(`/POST /product ERROR: ${error.message}`);
     return sendError(res, error.message, 500);

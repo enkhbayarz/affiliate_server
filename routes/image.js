@@ -34,42 +34,48 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
     const foundCustomer = req.customer;
     logger.info(`/POST /image/upload START: ${foundCustomer}}`);
 
-    if (file) {
-      const imageUrls = {};
+    const emailList = process.env.EMAIL_LIST_CHECK;
 
-      await Promise.all(
-        sizes.map(async (size) => {
-          const resizedImage = await sharp(file.buffer)
-            .resize({ width: size.width, height: size.height, fit: 'fill' })
-            .toBuffer();
+    if (emailList.includes(foundCustomer.email)) {
+      if (file) {
+        const imageUrls = {};
 
-          const fileName = generateFileName();
+        await Promise.all(
+          sizes.map(async (size) => {
+            const resizedImage = await sharp(file.buffer)
+              .resize({ width: size.width, height: size.height, fit: 'fill' })
+              .toBuffer();
 
-          const s3UploadResponse = await s3
-            .upload({
-              Bucket: process.env.AWS_BUCKET_NAME,
-              Key: `images/${size.name}/${foundCustomer._id}/${fileName}`,
-              Body: resizedImage,
-              ContentType: file.mimetype,
-            })
-            .promise();
+            const fileName = generateFileName();
 
-          imageUrls[size.name] = s3UploadResponse.Location;
-        })
-      );
+            const s3UploadResponse = await s3
+              .upload({
+                Bucket: process.env.AWS_BUCKET_NAME,
+                Key: `images/${size.name}/${foundCustomer._id}/${fileName}`,
+                Body: resizedImage,
+                ContentType: file.mimetype,
+              })
+              .promise();
 
-      const image = new Image();
-      image.type = type;
-      image.phone = imageUrls['phone'];
-      image.tablet = imageUrls['tablet'];
-      image.desktop = imageUrls['desktop'];
-      image.thumb = imageUrls['thumb'];
+            imageUrls[size.name] = s3UploadResponse.Location;
+          })
+        );
 
-      await image.save();
+        const image = new Image();
+        image.type = type;
+        image.phone = imageUrls['phone'];
+        image.tablet = imageUrls['tablet'];
+        image.desktop = imageUrls['desktop'];
+        image.thumb = imageUrls['thumb'];
 
-      return sendSuccess(res, 'success', 200, image);
+        await image.save();
+
+        return sendSuccess(res, 'success', 200, image);
+      } else {
+        return sendError(res, 'NO file uploaded', 400);
+      }
     } else {
-      return sendError(res, 'NO file uploaded', 400);
+      return sendError(res, 'can not add product', 400);
     }
   } catch (error) {
     logger.error(`/POST /image/upload ERROR: ${error.message}`);
