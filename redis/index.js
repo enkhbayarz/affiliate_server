@@ -14,6 +14,8 @@ const client = createClient({
 
 async function get(key) {
   try {
+    logger.info(`/REDIS /get key START: ${key}`);
+
     await client.connect();
 
     const val = await client.get(key);
@@ -28,6 +30,7 @@ async function get(key) {
 
 async function exists(key) {
   try {
+    logger.info(`/REDIS /get key START: ${key}`);
     await client.connect();
 
     const val = await client.exists(key);
@@ -42,6 +45,7 @@ async function exists(key) {
 
 async function set(key, value) {
   try {
+    logger.info(`/REDIS /set key value START: ${key} ${value}`);
     await client.connect();
 
     await client.set(key, value);
@@ -53,6 +57,7 @@ async function set(key, value) {
 }
 async function del(key) {
   try {
+    logger.info(`/REDIS /del key START: ${key}`);
     await client.connect();
 
     await client.del(key);
@@ -65,6 +70,7 @@ async function del(key) {
 
 async function setCustomerCount(key) {
   try {
+    logger.info(`/REDIS /setCustomerCount key START: ${key}`);
     await client.connect();
 
     await client.incr(key);
