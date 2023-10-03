@@ -42,8 +42,6 @@ async function exists(key) {
 
     const val = await client.exists(key);
 
-    logger.info(`/REDIS /exists value: ${val}`);
-
     return val;
   } catch (error) {
     logger.error(`redis exists ERROR: ${error.message}`);
