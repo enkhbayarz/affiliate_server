@@ -75,5 +75,5 @@ async function setCustomerCount(key) {
     return false;
   }
 }
-
+client.quit();
 module.exports = { get, set, del, setCustomerCount, exists };
