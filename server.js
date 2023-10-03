@@ -21,13 +21,14 @@ const {
 const allowedOrigins = [
   'https://gum-road.vercel.app',
   'http://localhost:3000',
+  'https://www.sellstream.store',
   'https://sellstream.store',
+  'https://www.sellstream.shop',
   'https://sellstream.shop',
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    logger.info(`/origin START: ${origin}`);
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
