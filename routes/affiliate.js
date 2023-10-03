@@ -491,7 +491,16 @@ router.get('/merchant', verifyToken, async (req, res) => {
               merchant: foundMerchant._id,
               affiliate: '$affiliate',
             },
-            totalAmount: { $sum: { $toDouble: '$affiliateFee' } },
+            totalAmount: {
+              $sum: {
+                $convert: {
+                  input: '$affiliateFee',
+                  to: 'decimal',
+                  onError: Decimal128.fromString('0'),
+                  onNull: Decimal128.fromString('0'),
+                },
+              },
+            },
           },
         },
         {
@@ -503,6 +512,7 @@ router.get('/merchant', verifyToken, async (req, res) => {
           },
         },
       ]);
+      revenue[0].totalAmount = parseFloat(revenue[0].totalAmount.toString());
 
       const sales = await Transaction.aggregate([
         {
