@@ -2,6 +2,7 @@ const express = require('express');
 let router = express.Router();
 
 const { Merchant, Transaction } = require('../models/index');
+const { Decimal128 } = require('mongoose').Types;
 
 const { verifyToken } = require('../middleware/token');
 const { sendSuccess, sendError } = require('../utils/response');
@@ -25,7 +26,7 @@ router.get('/', verifyToken, async (req, res) => {
     if (val) {
       return sendSuccess(res, 'success', 200, JSON.parse(val));
     } else {
-      const revenue = await Transaction.aggregate([
+      let revenue = await Transaction.aggregate([
         {
           $match: {
             merchant: foundMerchant._id,
@@ -38,7 +39,14 @@ router.get('/', verifyToken, async (req, res) => {
               merchant: foundMerchant._id,
             },
             value: {
-              $sum: { $toDouble: '$afterFee' },
+              $sum: {
+                $convert: {
+                  input: '$afterFee',
+                  to: 'decimal',
+                  onError: Decimal128.fromString('0'),
+                  onNull: Decimal128.fromString('0'),
+                },
+              },
             },
           },
         },
@@ -52,6 +60,8 @@ router.get('/', verifyToken, async (req, res) => {
           },
         },
       ]).exec();
+
+      revenue[0].value = parseFloat(revenue[0].value.toString());
 
       const revenueByDay = await Transaction.aggregate([
         {
