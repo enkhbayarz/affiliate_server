@@ -18,12 +18,6 @@ let client;
   await client.connect();
 })();
 
-// const getAsync = promisify(client.get).bind(client);
-// const existsAsync = promisify(client.exists).bind(client);
-// const setAsync = promisify(client.set).bind(client);
-// const delAsync = promisify(client.del).bind(client);
-// const incrAsync = promisify(client.incr).bind(client);
-
 async function get(key) {
   try {
     logger.info(`/REDIS /get key START: ${key}`);

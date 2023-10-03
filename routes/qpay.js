@@ -42,7 +42,7 @@ router.post(
       }
 
       logger.info(
-        `/POST /create-invoice/affiliate START: ${affiliateId} ${email}`
+        `/POST /create-invoice/affiliate START: ${affiliateId} ${email} ${optionId}`
       );
 
       const affiliate = await Affiliate.findOne({ uid: affiliateId });
@@ -532,7 +532,7 @@ router.get('/qpay/check/transaction/:id', checkBasicAuth, async (req, res) => {
     const timeDifference = currentTime - foundTransaction.createdAt;
     const timeDifferenceInSeconds = timeDifference / 1000;
     if (timeDifferenceInSeconds > 300) {
-      return sendError(res, 'qpay expired', 400);
+      return sendError(res, 'qpay expired create new one', 400);
     } else {
       if (foundTransaction.status === 'PAID') {
         return sendSuccess(res, 'success', 200, { isPaid: true });

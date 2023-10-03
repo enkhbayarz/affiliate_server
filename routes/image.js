@@ -51,7 +51,7 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
             const s3UploadResponse = await s3
               .upload({
                 Bucket: process.env.AWS_BUCKET_NAME,
-                Key: `images/${size.name}/${foundCustomer._id}/${fileName}`,
+                Key: `images/${foundCustomer._id}/${size.name}/${fileName}`,
                 Body: resizedImage,
                 ContentType: file.mimetype,
               })

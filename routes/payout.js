@@ -26,7 +26,7 @@ router.get('/', verifyToken, async (req, res) => {
     if (val) {
       return sendSuccess(res, 'success', 200, JSON.parse(val));
     } else {
-      let revenue = await Transaction.aggregate([
+      const revenue = await Transaction.aggregate([
         {
           $match: {
             merchant: foundMerchant._id,
@@ -325,23 +325,5 @@ router.get('/', verifyToken, async (req, res) => {
     return sendError(res, error.message, 500);
   }
 });
-
-// //Tran list
-// router.get('/list', verifyToken, async (req, res) => {
-//   try {
-//     const foundCustomer = req.customer;
-//     logger.info(`/GET /payout START: ${JSON.stringify(foundCustomer)}`);
-
-//     const foundMerchant = await Merchant.findOne({ customer: foundCustomer });
-//     if (!foundMerchant) {
-//       return sendSuccess(res, 'success', 200, {});
-//     }
-
-//     return sendSuccess(res, 'success', 200, { list });
-//   } catch (error) {
-//     logger.error(`/GET /payout ERROR: ${error.message}`);
-//     return sendError(res, error.message, 500);
-//   }
-// });
 
 module.exports = router;

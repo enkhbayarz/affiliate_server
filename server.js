@@ -18,7 +18,11 @@ const {
 } = require('./routes/index');
 
 //midllewares
-const allowedOrigins = ['https://gum-road.vercel.app', 'http://localhost:3000'];
+const allowedOrigins = [
+  'https://gum-road.vercel.app',
+  'http://localhost:3000',
+  'https://sellstream.store',
+];
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -35,7 +39,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/static', express.static('public'));
 
 app.get('/', (req, res) => {
-  res.send('Welcome to Social Club Store');
+  res.send('Welcome to Sell Stream Store');
 });
 
 app.use('/affiliate', affiliateRoute);

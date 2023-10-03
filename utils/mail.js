@@ -1,6 +1,5 @@
 const nodemailer = require('nodemailer');
 const logger = require('../log');
-const { sign } = require('jsonwebtoken');
 
 function createTransporter() {
   return nodemailer.createTransport({
@@ -26,10 +25,9 @@ async function sendMail({ email, subject, text, html }) {
   };
 
   try {
-    const emailList = process.env.EMAIL_LIST_CHECK;
-
-    logger.info(`send mail START: ${JSON.stringify(message)}`);
+    logger.info(`send mail MESSAGE: ${JSON.stringify(message)}`);
     await transporter.sendMail(message);
+    logger.info(`send mail success:`);
 
     return 'success';
   } catch (e) {

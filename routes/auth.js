@@ -30,11 +30,11 @@ const generateTokens = (res, email, userId) => {
 
   const currentTimestampGMT8 = currentTimestamp + GMT8OffsetInMilliseconds;
 
-  // const expires_in = currentTimestampGMT8 + 24 * 60 * 60 * 1000;
-  const expires_in = currentTimestampGMT8 + 1 * 60 * 1000;
+  const expires_in = currentTimestampGMT8 + 24 * 60 * 60 * 1000;
+  // const expires_in = currentTimestampGMT8 + 1 * 60 * 1000;
 
-  // const refresh_expires_in = currentTimestampGMT8 + 30 * 24 * 60 * 60 * 1000;
-  const refresh_expires_in = currentTimestampGMT8 + 1 * 60 * 1000;
+  const refresh_expires_in = currentTimestampGMT8 + 30 * 24 * 60 * 60 * 1000;
+  // const refresh_expires_in = currentTimestampGMT8 + 1 * 60 * 1000;
 
   return sendSuccess(res, 'success', 200, {
     accessToken,
@@ -144,7 +144,7 @@ router.post(
       const timeDifference = currentTime - foundOtp.updatedAt;
       const timeDifferenceInSeconds = timeDifference / 1000;
 
-      if (timeDifferenceInSeconds > 60) {
+      if (timeDifferenceInSeconds > 120) {
         return sendError(res, 'otp expired send again!', 400);
       } else {
         if (foundOtp.otpCode == otpCode) {
