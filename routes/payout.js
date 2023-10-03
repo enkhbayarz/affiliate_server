@@ -39,14 +39,7 @@ router.get('/', verifyToken, async (req, res) => {
               merchant: foundMerchant._id,
             },
             value: {
-              $sum: {
-                $convert: {
-                  input: '$afterFee',
-                  to: 'decimal',
-                  onError: Decimal128.fromString('0'),
-                  onNull: Decimal128.fromString('0'),
-                },
-              },
+              $sum: { $toDouble: '$afterFee' },
             },
           },
         },
@@ -60,8 +53,6 @@ router.get('/', verifyToken, async (req, res) => {
           },
         },
       ]).exec();
-
-      revenue[0].value = parseFloat(revenue[0].value.toString());
 
       const revenueByDay = await Transaction.aggregate([
         {

@@ -194,14 +194,7 @@ router.get('/own', verifyToken, async (req, res) => {
               affiliate: '$affiliate',
             },
             value: {
-              $sum: {
-                $convert: {
-                  input: '$affiliateFee',
-                  to: 'decimal',
-                  onError: Decimal128.fromString('0'),
-                  onNull: Decimal128.fromString('0'),
-                },
-              },
+              $sum: { $toDouble: '$affiliateFee' },
             },
           },
         },
@@ -214,7 +207,7 @@ router.get('/own', verifyToken, async (req, res) => {
           },
         },
       ]);
-      revenue[0].value = parseFloat(revenue[0].value.toString());
+
       const sales = await Transaction.aggregate([
         {
           $match: {
@@ -312,99 +305,6 @@ router.get('/own', verifyToken, async (req, res) => {
   }
 });
 
-router.get('/own/revenue', verifyToken, async (req, res) => {
-  try {
-    const foundCustomer = req.customer;
-    logger.info(
-      `/GET /affiliate/own/revenue START: ${JSON.stringify(foundCustomer)} `
-    );
-    const affiliateCustomer = await AffiliateCustomer.findOne({
-      customer: foundCustomer,
-    });
-
-    if (!affiliateCustomer) {
-      return sendSuccess(res, 'success', 200, null);
-    }
-
-    const val = await get(
-      `${affiliateOwnRevenueRedis}${affiliateCustomer._id}`
-    );
-
-    if (val) {
-      return sendSuccess(res, 'success', 200, JSON.parse(val));
-    } else {
-      const affiliates = await Affiliate.find({
-        affiliateCustomer: affiliateCustomer,
-      });
-
-      const affiliateIds = affiliates.map((affiliate) => affiliate._id);
-
-      const revenue = await Transaction.aggregate([
-        {
-          $match: {
-            affiliate: { $in: affiliateIds },
-            affiliateCustomer: affiliateCustomer._id,
-            status: 'PAID',
-          },
-        },
-        {
-          $group: {
-            _id: {
-              affiliateCustomer: affiliateCustomer._id,
-              affiliate: '$affiliate',
-            },
-            totalAmount: { $sum: { $toDouble: '$affiliateFee' } },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            affiliateCustomer: '$_id.affiliateCustomer',
-            affiliate: '$_id.affiliate',
-            totalAmount: '$totalAmount',
-          },
-        },
-      ]);
-      const sales = await Transaction.aggregate([
-        {
-          $match: {
-            affiliate: { $in: affiliateIds },
-            affiliateCustomer: affiliateCustomer._id,
-            status: 'PAID',
-          },
-        },
-        {
-          $group: {
-            _id: {
-              affiliateCustomer: affiliateCustomer._id,
-              affiliate: '$affiliate',
-            },
-            count: { $sum: 1 },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            affiliateCustomer: '$_id.affiliateCustomer',
-            affiliate: '$_id.affiliate',
-            count: '$count',
-          },
-        },
-      ]);
-
-      await set(
-        `${affiliateOwnRevenueRedis}${affiliateCustomer._id}`,
-        JSON.stringify({ revenue, sales })
-      );
-
-      return sendSuccess(res, 'success', 200, { revenue, sales });
-    }
-  } catch (error) {
-    logger.error(`/POST /affiliate/own ERROR: ${error.message}`);
-    return sendError(res, error.message, 500);
-  }
-});
-
 //TODO: mnii buteegdehuun deer baigaa affiliates
 //Get Affiliate by merchant
 router.get('/merchant', verifyToken, async (req, res) => {
@@ -454,14 +354,7 @@ router.get('/merchant', verifyToken, async (req, res) => {
               affiliate: '$affiliate',
             },
             totalAmount: {
-              $sum: {
-                $convert: {
-                  input: '$afterFee',
-                  to: 'decimal',
-                  onError: Decimal128.fromString('0'),
-                  onNull: Decimal128.fromString('0'),
-                },
-              },
+              $sum: { $toDouble: '$afterFee' },
             },
           },
         },
@@ -474,8 +367,6 @@ router.get('/merchant', verifyToken, async (req, res) => {
           },
         },
       ]);
-
-      revenue[0].totalAmount = parseFloat(revenue[0].totalAmount.toString());
 
       const affiliateRevenue = await Transaction.aggregate([
         {
@@ -492,14 +383,7 @@ router.get('/merchant', verifyToken, async (req, res) => {
               affiliate: '$affiliate',
             },
             totalAmount: {
-              $sum: {
-                $convert: {
-                  input: '$affiliateFee',
-                  to: 'decimal',
-                  onError: Decimal128.fromString('0'),
-                  onNull: Decimal128.fromString('0'),
-                },
-              },
+              $sum: { $toDouble: '$affiliateFee' },
             },
           },
         },
@@ -512,7 +396,6 @@ router.get('/merchant', verifyToken, async (req, res) => {
           },
         },
       ]);
-      revenue[0].totalAmount = parseFloat(revenue[0].totalAmount.toString());
 
       const sales = await Transaction.aggregate([
         {
@@ -630,96 +513,6 @@ router.get('/merchant', verifyToken, async (req, res) => {
   }
 });
 
-router.get('/merchant/revenue', verifyToken, async (req, res) => {
-  try {
-    const foundCustomer = req.customer;
-    logger.info(
-      `/GET /affiliate/merchant/revenue START: ${JSON.stringify(
-        foundCustomer
-      )} `
-    );
-
-    const foundMerchant = await Merchant.findOne({ customer: foundCustomer });
-    if (!foundMerchant) {
-      return sendSuccess(res, 'success', 200, []);
-    }
-    const val = await get(
-      `${affiliateMerchantRevenueRedis}${foundMerchant._id}`
-    );
-
-    if (val) {
-      return sendSuccess(res, 'success', 200, JSON.parse(val));
-    } else {
-      const affiliates = await Affiliate.find({ merchant: foundMerchant });
-
-      const affiliateIds = affiliates.map((affiliate) => affiliate._id);
-
-      const revenue = await Transaction.aggregate([
-        {
-          $match: {
-            affiliate: { $in: affiliateIds },
-            merchant: foundMerchant._id,
-            status: 'PAID',
-          },
-        },
-        {
-          $group: {
-            _id: {
-              merchant: foundMerchant._id,
-              affiliate: '$affiliate',
-            },
-            totalAmount: { $sum: { $toDouble: '$afterFee' } },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            merchant: '$_id.merchant',
-            affiliate: '$_id.affiliate',
-            totalAmount: '$totalAmount',
-          },
-        },
-      ]);
-      const sales = await Transaction.aggregate([
-        {
-          $match: {
-            affiliate: { $in: affiliateIds },
-            merchant: foundMerchant._id,
-            status: 'PAID',
-          },
-        },
-        {
-          $group: {
-            _id: {
-              merchant: foundMerchant._id,
-              affiliate: '$affiliate',
-            },
-            count: { $sum: 1 },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            merchant: '$_id.merchant',
-            affiliate: '$_id.affiliate',
-            count: '$count',
-          },
-        },
-      ]);
-
-      await set(
-        `${affiliateMerchantRevenueRedis}${foundMerchant._id}`,
-        JSON.stringify({ revenue, sales })
-      );
-
-      return sendSuccess(res, 'success', 200, { revenue, sales });
-    }
-  } catch (error) {
-    logger.error(`/POST /affiliate/merchant/revenue ERROR: ${error.message}`);
-    return sendError(res, error.message, 500);
-  }
-});
-
 router.get('/uid/:uid', checkBasicAuth, async (req, res) => {
   try {
     const { uid } = req.params;
@@ -804,3 +597,186 @@ router.get('/list/uid/:uid', checkBasicAuth, async (req, res) => {
   }
 });
 module.exports = router;
+
+// router.get('/merchant/revenue', verifyToken, async (req, res) => {
+//   try {
+//     const foundCustomer = req.customer;
+//     logger.info(
+//       `/GET /affiliate/merchant/revenue START: ${JSON.stringify(
+//         foundCustomer
+//       )} `
+//     );
+
+//     const foundMerchant = await Merchant.findOne({ customer: foundCustomer });
+//     if (!foundMerchant) {
+//       return sendSuccess(res, 'success', 200, []);
+//     }
+//     const val = await get(
+//       `${affiliateMerchantRevenueRedis}${foundMerchant._id}`
+//     );
+
+//     if (val) {
+//       return sendSuccess(res, 'success', 200, JSON.parse(val));
+//     } else {
+//       const affiliates = await Affiliate.find({ merchant: foundMerchant });
+
+//       const affiliateIds = affiliates.map((affiliate) => affiliate._id);
+
+//       const revenue = await Transaction.aggregate([
+//         {
+//           $match: {
+//             affiliate: { $in: affiliateIds },
+//             merchant: foundMerchant._id,
+//             status: 'PAID',
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: {
+//               merchant: foundMerchant._id,
+//               affiliate: '$affiliate',
+//             },
+//             totalAmount: { $sum: { $toDouble: '$afterFee' } },
+//           },
+//         },
+//         {
+//           $project: {
+//             _id: 0,
+//             merchant: '$_id.merchant',
+//             affiliate: '$_id.affiliate',
+//             totalAmount: '$totalAmount',
+//           },
+//         },
+//       ]);
+//       const sales = await Transaction.aggregate([
+//         {
+//           $match: {
+//             affiliate: { $in: affiliateIds },
+//             merchant: foundMerchant._id,
+//             status: 'PAID',
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: {
+//               merchant: foundMerchant._id,
+//               affiliate: '$affiliate',
+//             },
+//             count: { $sum: 1 },
+//           },
+//         },
+//         {
+//           $project: {
+//             _id: 0,
+//             merchant: '$_id.merchant',
+//             affiliate: '$_id.affiliate',
+//             count: '$count',
+//           },
+//         },
+//       ]);
+
+//       await set(
+//         `${affiliateMerchantRevenueRedis}${foundMerchant._id}`,
+//         JSON.stringify({ revenue, sales })
+//       );
+
+//       return sendSuccess(res, 'success', 200, { revenue, sales });
+//     }
+//   } catch (error) {
+//     logger.error(`/POST /affiliate/merchant/revenue ERROR: ${error.message}`);
+//     return sendError(res, error.message, 500);
+//   }
+// });
+
+// router.get('/own/revenue', verifyToken, async (req, res) => {
+//   try {
+//     const foundCustomer = req.customer;
+//     logger.info(
+//       `/GET /affiliate/own/revenue START: ${JSON.stringify(foundCustomer)} `
+//     );
+//     const affiliateCustomer = await AffiliateCustomer.findOne({
+//       customer: foundCustomer,
+//     });
+
+//     if (!affiliateCustomer) {
+//       return sendSuccess(res, 'success', 200, null);
+//     }
+
+//     const val = await get(
+//       `${affiliateOwnRevenueRedis}${affiliateCustomer._id}`
+//     );
+
+//     if (val) {
+//       return sendSuccess(res, 'success', 200, JSON.parse(val));
+//     } else {
+//       const affiliates = await Affiliate.find({
+//         affiliateCustomer: affiliateCustomer,
+//       });
+
+//       const affiliateIds = affiliates.map((affiliate) => affiliate._id);
+
+//       const revenue = await Transaction.aggregate([
+//         {
+//           $match: {
+//             affiliate: { $in: affiliateIds },
+//             affiliateCustomer: affiliateCustomer._id,
+//             status: 'PAID',
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: {
+//               affiliateCustomer: affiliateCustomer._id,
+//               affiliate: '$affiliate',
+//             },
+//             totalAmount: { $sum: { $toDouble: '$affiliateFee' } },
+//           },
+//         },
+//         {
+//           $project: {
+//             _id: 0,
+//             affiliateCustomer: '$_id.affiliateCustomer',
+//             affiliate: '$_id.affiliate',
+//             totalAmount: '$totalAmount',
+//           },
+//         },
+//       ]);
+//       const sales = await Transaction.aggregate([
+//         {
+//           $match: {
+//             affiliate: { $in: affiliateIds },
+//             affiliateCustomer: affiliateCustomer._id,
+//             status: 'PAID',
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: {
+//               affiliateCustomer: affiliateCustomer._id,
+//               affiliate: '$affiliate',
+//             },
+//             count: { $sum: 1 },
+//           },
+//         },
+//         {
+//           $project: {
+//             _id: 0,
+//             affiliateCustomer: '$_id.affiliateCustomer',
+//             affiliate: '$_id.affiliate',
+//             count: '$count',
+//           },
+//         },
+//       ]);
+
+//       await set(
+//         `${affiliateOwnRevenueRedis}${affiliateCustomer._id}`,
+//         JSON.stringify({ revenue, sales })
+//       );
+
+//       return sendSuccess(res, 'success', 200, { revenue, sales });
+//     }
+//   } catch (error) {
+//     logger.error(`/POST /affiliate/own ERROR: ${error.message}`);
+//     return sendError(res, error.message, 500);
+//   }
+// });

@@ -222,14 +222,7 @@ router.get('/', verifyToken, async (req, res) => {
               product: '$product',
             },
             value: {
-              $sum: {
-                $convert: {
-                  input: '$afterFee',
-                  to: 'decimal',
-                  onError: Decimal128.fromString('0'),
-                  onNull: Decimal128.fromString('0'),
-                },
-              },
+              $sum: { $toDouble: '$afterFee' },
             },
           },
         },
@@ -243,7 +236,6 @@ router.get('/', verifyToken, async (req, res) => {
           },
         },
       ]);
-      revenue[0].value = parseFloat(revenue[0].value.toString());
 
       const members = await Transaction.aggregate([
         {
