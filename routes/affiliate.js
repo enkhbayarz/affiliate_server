@@ -1,6 +1,7 @@
 const express = require('express');
 let router = express.Router();
 const mongoose = require('mongoose');
+const { Decimal128 } = require('mongoose').Types;
 
 const {
   Affiliate,
