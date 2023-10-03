@@ -22,6 +22,7 @@ const allowedOrigins = [
   'https://gum-road.vercel.app',
   'http://localhost:3000',
   'https://sellstream.store',
+  'https://sellstream.shop',
 ];
 
 const corsOptions = {
