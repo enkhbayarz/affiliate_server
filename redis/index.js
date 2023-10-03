@@ -10,17 +10,19 @@ const client = createClient({
   },
 });
 
+const getAsync = promisify(client.get).bind(client);
+const existsAsync = promisify(client.exists).bind(client);
+const setAsync = promisify(client.set).bind(client);
+const delAsync = promisify(client.del).bind(client);
+const incrAsync = promisify(client.incr).bind(client);
+
 // const getAsync = promisify(client.get).bind(client);
 
 async function get(key) {
   try {
     logger.info(`/REDIS /get key START: ${key}`);
 
-    await client.connect();
-
-    const val = await client.get(key);
-
-    await client.disconnect();
+    const val = await getAsync(key);
 
     return val;
   } catch (error) {
@@ -30,12 +32,11 @@ async function get(key) {
 
 async function exists(key) {
   try {
-    logger.info(`/REDIS /get key START: ${key}`);
-    await client.connect();
+    logger.info(`/REDIS /exists key START: ${key}`);
 
-    const val = await client.exists(key);
+    const val = await existsAsync(key);
 
-    await client.disconnect();
+    logger.info(`/REDIS /exists value: ${val}`);
 
     return val;
   } catch (error) {
@@ -46,11 +47,8 @@ async function exists(key) {
 async function set(key, value) {
   try {
     logger.info(`/REDIS /set key value START: ${key}`);
-    await client.connect();
 
-    await client.set(key, value);
-
-    await client.disconnect();
+    await setAsync(key, value);
   } catch (error) {
     logger.error(`redis set ERROR: ${error.message}`);
   }
@@ -58,11 +56,8 @@ async function set(key, value) {
 async function del(key) {
   try {
     logger.info(`/REDIS /del key START: ${key}`);
-    await client.connect();
 
-    await client.del(key);
-
-    await client.disconnect();
+    await delAsync(key);
   } catch (error) {
     logger.error(`redis del ERROR: ${error.message}`);
   }
@@ -71,11 +66,8 @@ async function del(key) {
 async function setCustomerCount(key) {
   try {
     logger.info(`/REDIS /setCustomerCount key START: ${key}`);
-    await client.connect();
 
-    await client.incr(key);
-
-    client.disconnect();
+    await incrAsync(key);
 
     return true;
   } catch (error) {
