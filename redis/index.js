@@ -23,6 +23,7 @@ async function get(key) {
     logger.info(`/REDIS /get key START: ${key}`);
 
     const val = await getAsync(key);
+    client.quit();
 
     return val;
   } catch (error) {
@@ -37,6 +38,7 @@ async function exists(key) {
     const val = await existsAsync(key);
 
     logger.info(`/REDIS /exists value: ${val}`);
+    client.quit();
 
     return val;
   } catch (error) {
@@ -49,6 +51,7 @@ async function set(key, value) {
     logger.info(`/REDIS /set key value START: ${key}`);
 
     await setAsync(key, value);
+    client.quit();
   } catch (error) {
     logger.error(`redis set ERROR: ${error.message}`);
   }
@@ -58,6 +61,7 @@ async function del(key) {
     logger.info(`/REDIS /del key START: ${key}`);
 
     await delAsync(key);
+    client.quit();
   } catch (error) {
     logger.error(`redis del ERROR: ${error.message}`);
   }
@@ -68,6 +72,7 @@ async function setCustomerCount(key) {
     logger.info(`/REDIS /setCustomerCount key START: ${key}`);
 
     await incrAsync(key);
+    client.quit();
 
     return true;
   } catch (error) {
@@ -75,5 +80,4 @@ async function setCustomerCount(key) {
     return false;
   }
 }
-client.quit();
 module.exports = { get, set, del, setCustomerCount, exists };
