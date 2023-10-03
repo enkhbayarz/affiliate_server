@@ -2,7 +2,7 @@ const express = require('express');
 let router = express.Router();
 const uuid = require('uuid');
 const mongoose = require('mongoose');
-const { Decimal128 } = require('mongoose').Types;
+const cache = require('memory-cache');
 
 const {
   Merchant,
@@ -18,13 +18,14 @@ const {
 const { verifyToken, checkBasicAuth } = require('../middleware/token');
 const { sendSuccess, sendError } = require('../utils/response');
 const logger = require('../log');
-const cache = require('memory-cache');
 const { set, get, del } = require('../redis');
 const { productRevenueMembersRedis } = require('../utils/const');
 
-const cacheMiddleware = (duration, url) => {
+const cacheMiddleware = (duration) => {
   return (req, res, next) => {
     const key = '__express__' + req.originalUrl || req.url;
+    logger.info(`/GET __express__ cache START: ${req.originalUrl || req.url}`);
+
     const cachedBody = cache.get(key);
 
     if (cachedBody) {
@@ -146,8 +147,8 @@ router.post('/', verifyToken, async (req, res) => {
       await newTerm.save();
       await Product.create(product);
 
-      // const key = `__express__/product/store/${merchant._id}`;
-      // cache.del(key);
+      const key = `__express__/product/store/${merchant._id}`;
+      cache.del(key);
 
       await del(`${productRevenueMembersRedis}${merchant._id}`);
 
@@ -383,136 +384,6 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-router.get('/revenue-members', verifyToken, async (req, res) => {
-  try {
-    const foundCustomer = req.customer;
-    logger.info(`/GET /product START: ${JSON.stringify(foundCustomer)}`);
-
-    const foundMerchant = await Merchant.findOne({ customer: foundCustomer });
-    if (!foundMerchant) {
-      return sendSuccess(res, 'success', 200, []);
-    }
-
-    const val = await get(`${productRevenueMembersRedis}${foundMerchant._id}`);
-
-    if (val) {
-      return sendSuccess(res, 'success', 200, JSON.parse(val));
-    } else {
-      const product = await Product.find({ merchant: foundMerchant });
-
-      const productIds = product.map((p) => p._id);
-
-      const revenue = await Transaction.aggregate([
-        {
-          $match: {
-            product: { $in: productIds },
-            merchant: foundMerchant._id,
-            status: 'PAID',
-          },
-        },
-        {
-          $group: {
-            _id: {
-              merchant: '$merchant',
-              product: '$product',
-            },
-            totalAmount: { $sum: { $toDouble: '$afterFee' } },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            merchant: '$_id.merchant',
-            product: '$_id.product',
-            totalAmount: '$totalAmount',
-          },
-        },
-      ]);
-
-      const members = await Transaction.aggregate([
-        {
-          $match: {
-            merchant: foundMerchant._id,
-            status: 'PAID',
-          },
-        },
-        {
-          $group: {
-            _id: {
-              merchant: '$merchant',
-              product: '$product',
-            },
-            uniqueCustomers: { $addToSet: '$customer' },
-          },
-        },
-        {
-          $unwind: '$uniqueCustomers',
-        },
-        {
-          $group: {
-            _id: {
-              merchant: '$_id.merchant',
-              product: '$_id.product',
-            },
-            totalMembers: { $sum: 1 },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            merchant: '$_id.merchant',
-            product: '$_id.product',
-            count: '$totalMembers',
-          },
-        },
-      ]);
-
-      const sales = await Transaction.aggregate([
-        {
-          $match: {
-            merchant: foundMerchant._id,
-            status: 'PAID',
-          },
-        },
-        {
-          $group: {
-            _id: {
-              merchant: '$merchant',
-              product: '$product',
-            },
-            transactionCount: { $sum: 1 }, // Count transactions
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            merchant: '$_id.merchant',
-            product: '$_id.product',
-            count: '$transactionCount',
-          },
-        },
-      ]);
-
-      await set(
-        `${productRevenueMembersRedis}${foundMerchant._id}`,
-        JSON.stringify({
-          revenue,
-          members,
-          sales,
-        })
-      );
-      return sendSuccess(res, 'success', 200, {
-        revenue,
-        members,
-        sales,
-      });
-    }
-  } catch (error) {
-    logger.error(`/GET /product ERROR: ${error.message}`);
-    return sendError(res, error.message, 500);
-  }
-});
-
 //Gey Product by Id
 router.get('/:id', verifyToken, async (req, res) => {
   try {
@@ -531,7 +402,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 //Get Products by merchant
 router.get(
   '/store/:id',
-  // cacheMiddleware(3600),
+  cacheMiddleware(3600),
   checkBasicAuth,
   async (req, res) => {
     try {
@@ -576,127 +447,230 @@ router.get(
 );
 
 //Get Product store by UID
-router.get('/store/uid/:uid', checkBasicAuth, async (req, res) => {
-  try {
-    const { uid } = req.params;
-    logger.info(`/GET /product/store/uid/:uid START: ${uid}`);
+router.get(
+  '/store/uid/:uid',
+  checkBasicAuth,
+  cacheMiddleware(3600),
+  async (req, res) => {
+    try {
+      const { uid } = req.params;
+      logger.info(`/GET /product/store/uid/:uid START: ${uid}`);
 
-    const product = await Product.findOne({ uid: uid })
-      .populate('additionalInformation')
-      .populate('option')
-      .populate('coverImage')
-      .populate('thumbnail')
-      .populate('term')
-      .populate('merchant')
-      .lean()
-      .exec();
+      const product = await Product.findOne({ uid: uid })
+        .populate('additionalInformation')
+        .populate('option')
+        .populate('coverImage')
+        .populate('thumbnail')
+        .populate('term')
+        .populate('merchant')
+        .lean()
+        .exec();
 
-    product.option.map((option) => {
-      if (option.price && option.price instanceof mongoose.Types.Decimal128) {
-        option.price = parseFloat(option.price.toString());
-      }
-    });
+      product.option.map((option) => {
+        if (option.price && option.price instanceof mongoose.Types.Decimal128) {
+          option.price = parseFloat(option.price.toString());
+        }
+      });
 
-    return sendSuccess(res, 'success', 200, { product });
-  } catch (error) {
-    logger.error(`/GET /product/store/uid/:uid ERROR: ${error.message}`);
-    return sendError(res, error.message, 500);
-  }
-});
-
-router.get('/affiliate/uid/:uid', checkBasicAuth, async (req, res) => {
-  try {
-    const { uid } = req.params;
-    logger.info(`/GET /product/affiliate/uid/:uid START: ${uid}`);
-
-    const affiliates = await Affiliate.findOne({ uid: uid })
-      .populate({
-        path: 'product',
-        populate: [
-          {
-            path: 'additionalInformation',
-            model: 'AdditionalInformation',
-          },
-          {
-            path: 'term',
-            model: 'Term',
-          },
-          {
-            path: 'coverImage',
-            model: 'Image',
-          },
-          {
-            path: 'thumbnail',
-            model: 'Image',
-          },
-          {
-            path: 'option',
-            model: 'Option',
-          },
-          {
-            path: 'merchant',
-            model: 'Merchant',
-          },
-        ],
-      })
-      .lean()
-      .exec();
-
-    if (
-      affiliates.commission &&
-      affiliates.commission instanceof mongoose.Types.Decimal128
-    ) {
-      affiliates.commission = parseFloat(affiliates.commission.toString());
+      return sendSuccess(res, 'success', 200, { product });
+    } catch (error) {
+      logger.error(`/GET /product/store/uid/:uid ERROR: ${error.message}`);
+      return sendError(res, error.message, 500);
     }
-
-    affiliates.product.option.map((option) => {
-      if (option.price && option.price instanceof mongoose.Types.Decimal128) {
-        option.price = parseFloat(option.price.toString());
-      }
-    });
-
-    return sendSuccess(res, 'success', 200, { affiliates });
-  } catch (error) {
-    logger.error(`/GET /product/affiliate/uid/:uid ERROR: ${error.message}`);
-    return sendError(res, error.message, 500);
   }
-});
+);
 
-// router.put('/:id', verifyToken, async(req, res) => {
+router.get(
+  '/affiliate/uid/:uid',
+  checkBasicAuth,
+  cacheMiddleware(3600),
+  async (req, res) => {
+    try {
+      const { uid } = req.params;
+      logger.info(`/GET /product/affiliate/uid/:uid START: ${uid}`);
 
-//   try {
-//       const {id} = req.params;
-//       const product = await Product.findByIdAndUpdate(id, req.body)
+      const affiliates = await Affiliate.findOne({ uid: uid })
+        .populate({
+          path: 'product',
+          populate: [
+            {
+              path: 'additionalInformation',
+              model: 'AdditionalInformation',
+            },
+            {
+              path: 'term',
+              model: 'Term',
+            },
+            {
+              path: 'coverImage',
+              model: 'Image',
+            },
+            {
+              path: 'thumbnail',
+              model: 'Image',
+            },
+            {
+              path: 'option',
+              model: 'Option',
+            },
+            {
+              path: 'merchant',
+              model: 'Merchant',
+            },
+          ],
+        })
+        .lean()
+        .exec();
 
-//       if(!product){
-//           return res.status(404).json({message: "customer not found"})
-//       }
-//       const updatedProduct = await Product.findById(id);
+      if (
+        affiliates.commission &&
+        affiliates.commission instanceof mongoose.Types.Decimal128
+      ) {
+        affiliates.commission = parseFloat(affiliates.commission.toString());
+      }
 
-//       res.status(200).json(updatedProduct)
+      affiliates.product.option.map((option) => {
+        if (option.price && option.price instanceof mongoose.Types.Decimal128) {
+          option.price = parseFloat(option.price.toString());
+        }
+      });
 
-//   } catch (error) {
-//       res.status(500).json({message: error.message})
-//   }
-
-// })
-
-// router.delete('/:id', verifyToken, async(req, res) => {
-
-//   try {
-//     const {id} = req.params;
-//       const product = await Product.findByIdAndDelete(id, req.body)
-
-//       if(!product){
-//         return res.status(404).json({message: "customer not found"})
-//       }
-
-//       res.status(200).json(product)
-
-//   } catch (error) {
-//       res.status(500).json({message: error.message})
-//   }
-
-// })
+      return sendSuccess(res, 'success', 200, { affiliates });
+    } catch (error) {
+      logger.error(`/GET /product/affiliate/uid/:uid ERROR: ${error.message}`);
+      return sendError(res, error.message, 500);
+    }
+  }
+);
 
 module.exports = router;
+
+// router.get('/revenue-members', verifyToken, async (req, res) => {
+//   try {
+//     const foundCustomer = req.customer;
+//     logger.info(`/GET /product START: ${JSON.stringify(foundCustomer)}`);
+
+//     const foundMerchant = await Merchant.findOne({ customer: foundCustomer });
+//     if (!foundMerchant) {
+//       return sendSuccess(res, 'success', 200, []);
+//     }
+
+//     const val = await get(`${productRevenueMembersRedis}${foundMerchant._id}`);
+
+//     if (val) {
+//       return sendSuccess(res, 'success', 200, JSON.parse(val));
+//     } else {
+//       const product = await Product.find({ merchant: foundMerchant });
+
+//       const productIds = product.map((p) => p._id);
+
+//       const revenue = await Transaction.aggregate([
+//         {
+//           $match: {
+//             product: { $in: productIds },
+//             merchant: foundMerchant._id,
+//             status: 'PAID',
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: {
+//               merchant: '$merchant',
+//               product: '$product',
+//             },
+//             totalAmount: { $sum: { $toDouble: '$afterFee' } },
+//           },
+//         },
+//         {
+//           $project: {
+//             _id: 0,
+//             merchant: '$_id.merchant',
+//             product: '$_id.product',
+//             totalAmount: '$totalAmount',
+//           },
+//         },
+//       ]);
+
+//       const members = await Transaction.aggregate([
+//         {
+//           $match: {
+//             merchant: foundMerchant._id,
+//             status: 'PAID',
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: {
+//               merchant: '$merchant',
+//               product: '$product',
+//             },
+//             uniqueCustomers: { $addToSet: '$customer' },
+//           },
+//         },
+//         {
+//           $unwind: '$uniqueCustomers',
+//         },
+//         {
+//           $group: {
+//             _id: {
+//               merchant: '$_id.merchant',
+//               product: '$_id.product',
+//             },
+//             totalMembers: { $sum: 1 },
+//           },
+//         },
+//         {
+//           $project: {
+//             _id: 0,
+//             merchant: '$_id.merchant',
+//             product: '$_id.product',
+//             count: '$totalMembers',
+//           },
+//         },
+//       ]);
+
+//       const sales = await Transaction.aggregate([
+//         {
+//           $match: {
+//             merchant: foundMerchant._id,
+//             status: 'PAID',
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: {
+//               merchant: '$merchant',
+//               product: '$product',
+//             },
+//             transactionCount: { $sum: 1 }, // Count transactions
+//           },
+//         },
+//         {
+//           $project: {
+//             _id: 0,
+//             merchant: '$_id.merchant',
+//             product: '$_id.product',
+//             count: '$transactionCount',
+//           },
+//         },
+//       ]);
+
+//       await set(
+//         `${productRevenueMembersRedis}${foundMerchant._id}`,
+//         JSON.stringify({
+//           revenue,
+//           members,
+//           sales,
+//         })
+//       );
+//       return sendSuccess(res, 'success', 200, {
+//         revenue,
+//         members,
+//         sales,
+//       });
+//     }
+//   } catch (error) {
+//     logger.error(`/GET /product ERROR: ${error.message}`);
+//     return sendError(res, error.message, 500);
+//   }
+// });
