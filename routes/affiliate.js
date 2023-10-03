@@ -1,7 +1,7 @@
 const express = require('express');
 let router = express.Router();
 const mongoose = require('mongoose');
-const { Decimal128 } = require('mongoose').Types;
+const { cacheMiddleware } = require('../middleware/cache');
 
 const {
   Affiliate,
@@ -513,63 +513,68 @@ router.get('/merchant', verifyToken, async (req, res) => {
   }
 });
 
-router.get('/uid/:uid', checkBasicAuth, async (req, res) => {
-  try {
-    const { uid } = req.params;
+router.get(
+  '/uid/:uid',
+  checkBasicAuth,
+  cacheMiddleware(3600),
+  async (req, res) => {
+    try {
+      const { uid } = req.params;
 
-    logger.info(`/GET /affiliate/uid/:uid START: ${uid}}`);
+      logger.info(`/GET /affiliate/uid/:uid START: ${uid}}`);
 
-    const affiliate = await Affiliate.findOne({ uid: uid })
-      .populate({
-        path: 'product',
-        populate: [
-          {
-            path: 'additionalInformation',
-            model: 'AdditionalInformation',
-          },
-          {
-            path: 'term',
-            model: 'Term',
-          },
-          {
-            path: 'coverImage',
-            model: 'Image',
-          },
-          {
-            path: 'thumbnail',
-            model: 'Image',
-          },
-          {
-            path: 'option',
-            model: 'Option',
-          },
-          {
-            path: 'merchant',
-            model: 'Merchant',
-          },
-        ],
-      })
-      .lean();
-    if (
-      affiliate &&
-      affiliate.commission &&
-      affiliate.commission instanceof mongoose.Types.Decimal128
-    ) {
-      affiliate.commission = parseFloat(affiliate.commission.toString());
-    }
-
-    affiliate.product.option.map((option) => {
-      if (option.price && option.price instanceof mongoose.Types.Decimal128) {
-        option.price = parseFloat(option.price.toString());
+      const affiliate = await Affiliate.findOne({ uid: uid })
+        .populate({
+          path: 'product',
+          populate: [
+            {
+              path: 'additionalInformation',
+              model: 'AdditionalInformation',
+            },
+            {
+              path: 'term',
+              model: 'Term',
+            },
+            {
+              path: 'coverImage',
+              model: 'Image',
+            },
+            {
+              path: 'thumbnail',
+              model: 'Image',
+            },
+            {
+              path: 'option',
+              model: 'Option',
+            },
+            {
+              path: 'merchant',
+              model: 'Merchant',
+            },
+          ],
+        })
+        .lean();
+      if (
+        affiliate &&
+        affiliate.commission &&
+        affiliate.commission instanceof mongoose.Types.Decimal128
+      ) {
+        affiliate.commission = parseFloat(affiliate.commission.toString());
       }
-    });
 
-    return sendSuccess(res, 'success', 200, { affiliate });
-  } catch (error) {
-    logger.error(`/GET /affiliate/uid/:uid ERROR: ${error.message}`);
-    res.status(500).json({ message: error.message });
+      affiliate.product.option.map((option) => {
+        if (option.price && option.price instanceof mongoose.Types.Decimal128) {
+          option.price = parseFloat(option.price.toString());
+        }
+      });
+
+      return sendSuccess(res, 'success', 200, { affiliate });
+    } catch (error) {
+      logger.error(`/GET /affiliate/uid/:uid ERROR: ${error.message}`);
+      res.status(500).json({ message: error.message });
+    }
   }
-});
+);
 
 router.get('/list/uid/:uid', checkBasicAuth, async (req, res) => {
   try {

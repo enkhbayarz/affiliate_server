@@ -2,7 +2,6 @@ const express = require('express');
 let router = express.Router();
 const uuid = require('uuid');
 const mongoose = require('mongoose');
-const cache = require('memory-cache');
 
 const {
   Merchant,
@@ -20,38 +19,7 @@ const { sendSuccess, sendError } = require('../utils/response');
 const logger = require('../log');
 const { set, get, del } = require('../redis');
 const { productRevenueMembersRedis } = require('../utils/const');
-
-const cacheMiddleware = (duration) => {
-  return (req, res, next) => {
-    const key = '__express__' + req.originalUrl || req.url;
-    logger.info(`/GET __express__ cache START: ${req.originalUrl || req.url}`);
-
-    const cachedBody = cache.get(key);
-
-    if (cachedBody) {
-      res.setHeader('Content-Type', 'application/json');
-      res.send(cachedBody);
-    } else {
-      res.sendResponse = res.send;
-      res.send = (body) => {
-        cache.put(key, body, duration * 1000);
-        res.setHeader('Content-Type', 'application/json');
-        res.sendResponse(body);
-      };
-      next();
-    }
-  };
-};
-
-const clearCacheMiddleware = (condition, url) => {
-  return (req, res, next) => {
-    if (condition(req)) {
-      const key = '__express__' + url;
-      cache.del(key);
-    }
-    next();
-  };
-};
+const { cacheMiddleware } = require('../middleware/cache');
 
 //Product
 //Create Product
