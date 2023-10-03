@@ -45,7 +45,7 @@ async function exists(key) {
 
 async function set(key, value) {
   try {
-    logger.info(`/REDIS /set key value START: ${key} ${value}`);
+    logger.info(`/REDIS /set key value START: ${key}`);
     await client.connect();
 
     await client.set(key, value);
