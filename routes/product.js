@@ -2,6 +2,7 @@ const express = require('express');
 let router = express.Router();
 const uuid = require('uuid');
 const mongoose = require('mongoose');
+const cache = require('memory-cache');
 
 const {
   Merchant,
