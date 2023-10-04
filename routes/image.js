@@ -57,7 +57,9 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
               })
               .promise();
 
-            imageUrls[size.name] = s3UploadResponse.Location;
+            imageUrls[
+              size.name
+            ] = `${process.env.CLOUD_FRONT_URL}/images/${foundCustomer._id}/${size.name}/${fileName}`;
           })
         );
 
