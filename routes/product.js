@@ -131,6 +131,68 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
+router.put('/additionalInformation', verifyToken, async (req, res) => {
+  try {
+    const { productId, additionalInformation } = req.body;
+
+    logger.info(
+      `/PUT /product/additionalInformation START: ${productId} ${JSON.stringify(
+        req.body
+      )}`
+    );
+
+    const foundCustomer = req.customer;
+
+    const emailList = process.env.EMAIL_LIST_CHECK;
+
+    const foundProduct = await Product.findById(productId);
+    if (!foundProduct) {
+      return sendError(res, 'product not found', 404);
+    }
+
+    if (emailList.includes(foundCustomer.email)) {
+      let merchant = await Merchant.findOne({ customer: foundCustomer });
+
+      if (!merchant) {
+        return sendError(res, 'merchant not found', 404);
+      }
+
+      const updatedAdditionalInformationArray = [
+        ...foundProduct.additionalInformation,
+      ];
+
+      for (const info of additionalInformation) {
+        const { attribute, value } = info;
+
+        const additionalInfo = new AdditionalInformation({
+          attribute,
+          value,
+        });
+
+        await additionalInfo.save();
+
+        updatedAdditionalInformationArray.push(additionalInfo._id);
+      }
+
+      foundProduct.additionalInformation = updatedAdditionalInformationArray;
+
+      await foundProduct.save();
+
+      const key = `__express__/product/store/${merchant._id}`;
+      cache.del(key);
+
+      await del(`${productRevenueMembersRedis}${merchant._id}`);
+
+      return sendSuccess(res, 'success', 200, { foundProduct });
+    } else {
+      return sendError(res, 'can not update product', 400);
+    }
+  } catch (error) {
+    logger.error(`/PUT /product/additionalInformation ERROR: ${error.message}`);
+    return sendError(res, error.message, 500);
+  }
+});
+
 //  Prodcut nemeh erhtei esehiig shalgana
 router.get('/add-check', verifyToken, async (req, res) => {
   try {
