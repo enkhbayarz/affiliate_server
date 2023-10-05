@@ -38,19 +38,30 @@ async function sendMail({ email, subject, text, html }) {
 
 async function sendMailOtp(email, otp) {
   logger.info(`/SEND mailOtp START: ${email} ${otp}`);
+
+  const htmlContent = `
+  <p>OTP code:</p>
+  <p>${otp}</p>
+`;
+
   return sendMail({
     email,
     subject: 'Sell Stream',
-    text: `OTP code: ${otp}`,
+    html: htmlContent,
   });
 }
 
 async function sendMailAffiliate(email, affiliate) {
   logger.info(`/SEND MailAffiliate START: ${email} ${affiliate}`);
+
+  const htmlContent = `
+  <p>Affiliate Link:</p>
+  <p>${affiliate}</p>
+`;
   return sendMail({
     email,
     subject: 'Sell Stream',
-    text: `Affiliate Link: ${affiliate}`,
+    html: htmlContent,
   });
 }
 
@@ -58,19 +69,32 @@ async function sendMailAffiliateAndSignup(email, affiliate, signup) {
   logger.info(
     `/SEND MailAffiliateAndSignup START: ${email} ${affiliate} ${signup}`
   );
+
+  const htmlContent = `
+  <p>Signup Link:</p>
+  <a href="${signup}" style="background-color: #0088cc; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Sign up</a>
+  <br>
+  <br>
+  <p>Affiliate Link:</p>
+  <p>${affiliate}</p>
+`;
   return sendMail({
     email,
     subject: 'Sell Stream',
-    text: `Affiliate Link: ${affiliate} \n\n\n Signup Link: ${signup}`,
+    html: htmlContent,
   });
 }
 
 async function sendMailForgetPassword(email, forgetPassword) {
   logger.info(`/SEND MailForgetPassword START: ${email} ${forgetPassword}`);
+  const htmlContent = `
+  <p>Forget password: </p>
+  <p>${forgetPassword}</p>
+`;
   return sendMail({
     email,
     subject: 'Sell Stream',
-    text: `Forget password: ${forgetPassword}`,
+    html: htmlContent,
   });
 }
 
