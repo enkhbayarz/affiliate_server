@@ -17,6 +17,8 @@ const { fetchQpayToken, checkBasicAuth } = require('../middleware/token');
 const { sendSuccess, sendError } = require('../utils/response');
 const logger = require('../log');
 const { setCustomerCount, get, set, del, exists } = require('../redis');
+const { sendMailAfterPurchase } = require('../utils/mail');
+
 const {
   payoutMerchantRedis,
   productLimitCustomerCountRedis,
@@ -85,46 +87,33 @@ router.post(
 
       const v4Uuid = uuid.v4();
 
+      const transaction = new Transaction();
+
       const data = {
-        invoice_code: 'TEST1_INVOICE',
-        sender_invoice_no: 'MABNK000001',
+        invoice_code: 'TUGO116_INVOICE',
+        sender_invoice_no: `${transaction._id.toString()}`,
         invoice_receiver_code: '83',
         sender_branch_code: 'BRANCH1',
-        invoice_description: 'Order No1311 4444.00',
+        invoice_description: `Order ${selectedOption.price.toString()} ${transaction._id.toString()}`,
         enable_expiry: 'false',
         allow_partial: false,
         minimum_amount: null,
         allow_exceed: false,
         maximum_amount: null,
         amount: parseFloat(selectedOption.price.toString()),
-        callback_url: `https://mma-service.onrender.com/call-back/${v4Uuid}`,
+        callback_url: `${process.env.BASE_URL}/call-back/affiliate/${v4Uuid}`,
         sender_staff_code: 'online',
         note: null,
         invoice_receiver_data: {
-          register: 'UZ96021178',
-          name: 'Dulguun',
-          email: 'dulguun@gmail.com',
-          phone: '88789856',
+          register: 'UK00240730',
+          name: 'Enkhbayar Enkhorkhon',
+          email: 'e.enkhbayat@gmail.com',
+          phone: '95059075',
         },
-        transactions: [
-          {
-            description: 'gg',
-            amount: selectedOption.price.toString(),
-            accounts: [
-              {
-                account_bank_code: '390000',
-                account_name: 'аззаяа',
-                account_number: '8000101230',
-                account_currency: 'MNT',
-                is_default: true,
-              },
-            ],
-          },
-        ],
       };
 
       const token = req.qpay_access_token;
-      const url = 'https://merchant-sandbox.qpay.mn/v2/invoice';
+      const url = `${process.env.QPAY_URL}/v2/invoice`;
 
       const config = {
         headers: {
@@ -154,20 +143,19 @@ router.post(
       const affiliateFee = (afterFee * (affiliate.commission / 100)).toFixed(2);
       const realAfterFee = (afterFee - affiliateFee).toFixed(2);
 
-      const transaction = new Transaction({
-        status: 'NEW',
-        objectId: response.data.invoice_id,
-        uid: v4Uuid,
-        customer: foundCustomer,
-        product: affiliate.product,
-        affiliate: affiliate,
-        merchant: affiliate.merchant,
-        affiliateCustomer: affiliate.affiliateCustomer,
-        option: selectedOption,
-        qpayFee: qpayFee,
-        afterFee: realAfterFee,
-        affiliateFee: affiliateFee,
-      });
+      transaction.status = 'NEW';
+      transaction.objectId = response.data.invoice_id;
+      transaction.uid = v4Uuid;
+      transaction.customer = foundCustomer;
+      transaction.product = affiliate.product;
+      transaction.affiliate = affiliate;
+      transaction.merchant = affiliate.merchant;
+      transaction.affiliateCustomer = affiliate.affiliateCustomer;
+      transaction.option = selectedOption;
+      transaction.qpayFee = qpayFee;
+      transaction.afterFee = realAfterFee;
+      transaction.affiliateFee = affiliateFee;
+
       await transaction.save();
 
       const currentTimestamp = new Date().getTime();
@@ -239,46 +227,33 @@ router.post(
 
       const v4Uuid = uuid.v4();
 
+      const transaction = new Transaction();
+
       const data = {
-        invoice_code: 'TEST1_INVOICE',
-        sender_invoice_no: 'MABNK000001',
+        invoice_code: 'TUGO116_INVOICE',
+        sender_invoice_no: `${transaction._id.toString()}`,
         invoice_receiver_code: '83',
         sender_branch_code: 'BRANCH1',
-        invoice_description: 'Order No1311 4444.00',
+        invoice_description: `Order ${selectedOption.price.toString()} ${transaction._id.toString()}`,
         enable_expiry: 'false',
         allow_partial: false,
         minimum_amount: null,
         allow_exceed: false,
         maximum_amount: null,
         amount: parseFloat(selectedOption.price.toString()),
-        callback_url: `https://mma-service.onrender.com/call-back/${v4Uuid}`,
+        callback_url: `${process.env.BASE_URL}/call-back/simple/${v4Uuid}`,
         sender_staff_code: 'online',
         note: null,
         invoice_receiver_data: {
-          register: 'UZ96021178',
-          name: 'Dulguun',
-          email: 'dulguun@gmail.com',
-          phone: '88789856',
+          register: 'UK00240730',
+          name: 'Enkhbayar Enkhorkhon',
+          email: 'e.enkhbayat@gmail.com',
+          phone: '95059075',
         },
-        transactions: [
-          {
-            description: 'gg',
-            amount: selectedOption.price.toString(),
-            accounts: [
-              {
-                account_bank_code: '390000',
-                account_name: 'аззаяа',
-                account_number: '8000101230',
-                account_currency: 'MNT',
-                is_default: true,
-              },
-            ],
-          },
-        ],
       };
 
       const token = req.qpay_access_token;
-      const url = 'https://merchant-sandbox.qpay.mn/v2/invoice';
+      const url = `${process.env.QPAY_URL}/v2/invoice`;
 
       const config = {
         headers: {
@@ -305,17 +280,16 @@ router.post(
       const qpayFee = (priceAsNumber / 100).toFixed(2);
       const afterFee = (priceAsNumber - qpayFee).toFixed(2);
 
-      const transaction = new Transaction({
-        status: 'NEW',
-        objectId: response.data.invoice_id,
-        uid: v4Uuid,
-        customer: foundCustomer,
-        product: foundProduct,
-        merchant: foundProduct.merchant,
-        option: selectedOption,
-        qpayFee: qpayFee,
-        afterFee: afterFee,
-      });
+      transaction.status = 'NEW';
+      transaction.objectId = response.data.invoice_id;
+      transaction.uid = v4Uuid;
+      transaction.customer = foundCustomer;
+      transaction.product = foundProduct;
+      transaction.merchant = foundProduct.merchant;
+      transaction.option = selectedOption;
+      transaction.qpayFee = qpayFee;
+      transaction.afterFee = afterFee;
+
       await transaction.save();
 
       const currentTimestamp = new Date().getTime();
@@ -349,7 +323,7 @@ router.get('/call-back/simple/:id', fetchQpayToken, async (req, res) => {
     }
 
     const token = req.qpay_access_token;
-    const url = 'https://merchant-sandbox.qpay.mn/v2/payment/check';
+    const url = `${process.env.QPAY_URL}/v2/payment/check`;
 
     const data = {
       object_type: 'INVOICE',
@@ -366,8 +340,9 @@ router.get('/call-back/simple/:id', fetchQpayToken, async (req, res) => {
     };
 
     const response = await axios.post(url, data, config);
+    logger.info(`/POST QPAY CHECK RESPONSE: ${JSON.stringify(response.data)}`);
 
-    if (response.data.count === 0) {
+    if (response.data.count === 1) {
       const foundProduct = await Product.findById(transaction.product._id);
       if (!foundProduct) {
         return sendError(res, 'product not found!', 404);
@@ -404,6 +379,8 @@ router.get('/call-back/simple/:id', fetchQpayToken, async (req, res) => {
 
       await transaction.save();
 
+      sendMailAfterPurchase(transaction.customer.email);
+
       return sendSuccess(res, 'success', 200, response.data);
     } else {
       return sendError(res, 'Not Payed', 404);
@@ -435,7 +412,7 @@ router.get('/call-back/affiliate/:id', fetchQpayToken, async (req, res) => {
     }
 
     const token = req.qpay_access_token;
-    const url = 'https://merchant-sandbox.qpay.mn/v2/payment/check';
+    const url = `${process.env.QPAY_URL}/v2/payment/check`;
 
     const data = {
       object_type: 'INVOICE',
@@ -452,8 +429,9 @@ router.get('/call-back/affiliate/:id', fetchQpayToken, async (req, res) => {
     };
 
     const response = await axios.post(url, data, config);
+    logger.info(`/POST QPAY CHECK RESPONSE: ${JSON.stringify(response.data)}`);
 
-    if (response.data.count === 0) {
+    if (response.data.count === 1) {
       const foundProduct = await Product.findById(transaction.product._id);
       if (!foundProduct) {
         return sendError(res, 'product not found!', 404);
@@ -505,6 +483,8 @@ router.get('/call-back/affiliate/:id', fetchQpayToken, async (req, res) => {
       transaction.status = 'PAID';
 
       await transaction.save();
+
+      sendMailAfterPurchase(transaction.customer.email);
 
       return sendSuccess(res, 'success', 200, response.data);
     } else {

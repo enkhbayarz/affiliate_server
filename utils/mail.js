@@ -40,7 +40,7 @@ async function sendMailOtp(email, otp) {
   logger.info(`/SEND mailOtp START: ${email} ${otp}`);
   return sendMail({
     email,
-    subject: 'Social Club',
+    subject: 'Sell Stream',
     text: `OTP code: ${otp}`,
   });
 }
@@ -49,7 +49,7 @@ async function sendMailAffiliate(email, affiliate) {
   logger.info(`/SEND MailAffiliate START: ${email} ${affiliate}`);
   return sendMail({
     email,
-    subject: 'Social Club',
+    subject: 'Sell Stream',
     text: `Affiliate Link: ${affiliate}`,
   });
 }
@@ -60,7 +60,7 @@ async function sendMailAffiliateAndSignup(email, affiliate, signup) {
   );
   return sendMail({
     email,
-    subject: 'Social Club',
+    subject: 'Sell Stream',
     text: `Affiliate Link: ${affiliate} \n\n\n Signup Link: ${signup}`,
   });
 }
@@ -69,8 +69,17 @@ async function sendMailForgetPassword(email, forgetPassword) {
   logger.info(`/SEND MailForgetPassword START: ${email} ${forgetPassword}`);
   return sendMail({
     email,
-    subject: 'Social Club',
+    subject: 'Sell Stream',
     text: `Forget password: ${forgetPassword}`,
+  });
+}
+
+async function sendMailAfterPurchase(email) {
+  logger.info(`/SEND sendMailAfterPurchase START: ${email}`);
+  return sendMail({
+    email,
+    subject: 'Sell Stream',
+    text: `Худалдан авалт хийсэнд баярлалаа. Бид удахгүй и-мэйлээр холбогдох болно.`,
   });
 }
 
@@ -79,4 +88,5 @@ module.exports = {
   sendMailAffiliate,
   sendMailForgetPassword,
   sendMailAffiliateAndSignup,
+  sendMailAfterPurchase,
 };

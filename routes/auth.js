@@ -122,9 +122,7 @@ router.post(
         return sendError(res, errorMessages.toString(), 404);
       }
 
-      logger.info(
-        `/POST /auth/signup START: ${email} ${password} ${otpCode} ${token}`
-      );
+      logger.info(`/POST /auth/signup START: ${email} ${otpCode} ${token}`);
 
       const foundSignup = await Signup.findOne({ token: token });
       if (!foundSignup) {
@@ -190,7 +188,7 @@ router.post(
         return sendError(res, errorMessages.toString(), 404);
       }
 
-      logger.info(`/POST /auth/login START: ${email} ${password}`);
+      logger.info(`/POST /auth/login START: ${email}`);
 
       const foundCustomer = await Customer.findOne({ email: email });
 
@@ -289,7 +287,7 @@ router.post('/forgot-password', checkBasicAuth, async (req, res) => {
 router.post('/password-reset', checkBasicAuth, async (req, res) => {
   try {
     const { newPassword, uid } = req.body;
-    logger.info(`/POST /auth/password-reset START: ${uid}  ${newPassword}`);
+    logger.info(`/POST /auth/password-reset START: ${uid}`);
 
     const foundForgetPassword = await ForgetPassword.findOne({ uid: uid });
     if (!foundForgetPassword) {

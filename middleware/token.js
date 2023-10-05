@@ -59,10 +59,10 @@ async function fetchQpayToken(req, res, next) {
     const session = await Session.findById('650a9fdcee10c021e00d3b9b');
 
     if (new Date().getTime() > session.expires_in * 1000 + 15000) {
-      const apiUrl = 'https://merchant-sandbox.qpay.mn/v2/auth/token';
+      const apiUrl = `${process.env.QPAY_URL}/v2/auth/token`;
 
-      const username = 'TEST_MERCHANT';
-      const password = '123456';
+      const username = `${process.env.QPAY_USERNAME}`;
+      const password = `${process.env.QPAY_PASSWORD}`;
       const basicAuthHeader = `Basic ${Buffer.from(
         `${username}:${password}`
       ).toString('base64')}`;
