@@ -155,6 +155,7 @@ router.post(
       transaction.qpayFee = qpayFee;
       transaction.afterFee = realAfterFee;
       transaction.affiliateFee = affiliateFee;
+      transaction.email = email;
 
       await transaction.save();
 
@@ -289,6 +290,7 @@ router.post(
       transaction.option = selectedOption;
       transaction.qpayFee = qpayFee;
       transaction.afterFee = afterFee;
+      transaction.email = email;
 
       await transaction.save();
 
@@ -379,7 +381,7 @@ router.get('/call-back/simple/:id', fetchQpayToken, async (req, res) => {
 
       await transaction.save();
 
-      sendMailAfterPurchase(transaction.customer.email);
+      sendMailAfterPurchase(transaction.email);
 
       return sendSuccess(res, 'success', 200, response.data);
     } else {
@@ -484,7 +486,7 @@ router.get('/call-back/affiliate/:id', fetchQpayToken, async (req, res) => {
 
       await transaction.save();
 
-      sendMailAfterPurchase(transaction.customer.email);
+      sendMailAfterPurchase(transaction.email);
 
       return sendSuccess(res, 'success', 200, response.data);
     } else {

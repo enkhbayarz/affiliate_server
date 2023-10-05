@@ -22,6 +22,7 @@ const transactionSchema = mongoose.Schema(
     qrText: String,
     objectId: String,
     uid: String,
+    email: String,
     qpayFee: {
       type: mongoose.Types.Decimal128,
     },
