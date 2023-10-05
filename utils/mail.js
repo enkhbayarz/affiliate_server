@@ -77,8 +77,10 @@ async function sendMailForgetPassword(email, forgetPassword) {
 async function sendMailAfterPurchase(email) {
   logger.info(`/SEND sendMailAfterPurchase START: ${email}`);
   const htmlContent = `
-  <p>Худалдан авалт хийсэнд баярлалаа. Та дараах QR зурагыг уншуулж telegram-даа орно уу.</p>
-  <img src="${process.env.TELEGRAM_QR_IMAGE}" alt="Image">`;
+  <p>Худалдан авалт хийсэнд баярлалаа. Та дараах Link-н дээр дарж эсвэл QR зурагыг уншуулж telegram-даа орно уу.</p>
+  <br>
+  <a href="${process.env.TELEGRAM_LINK}" style="background-color: #0088cc; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Click Here</a>
+  `;
   return sendMail({
     email,
     subject: 'Sell Stream',
