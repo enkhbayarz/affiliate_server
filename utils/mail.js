@@ -101,7 +101,7 @@ async function sendMailForgetPassword(email, forgetPassword) {
 async function sendMailAfterPurchase(email) {
   logger.info(`/SEND sendMailAfterPurchase START: ${email}`);
   const htmlContent = `
-  <p>Худалдан авалт хийсэнд баярлалаа. Та дараах Link-н дээр дарж эсвэл QR зурагыг уншуулж telegram-даа орно уу.</p>
+  <p>Худалдан авалт хийсэнд баярлалаа. Та дараах товчин дээр дарж telegram өрөөндөө орно уу.</p>
   <br>
   <a href="${process.env.TELEGRAM_LINK}" style="background-color: #0088cc; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Click Here</a>
   `;
